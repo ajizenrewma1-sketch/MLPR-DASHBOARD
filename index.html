@@ -290,7 +290,7 @@
 
                 <div class="flex gap-2 ml-1">
                     <button onclick="applyHoliday()" class="btn-pop bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-xl text-sm transition-all shadow-md shadow-indigo-500/20 flex items-center gap-2">
-                        บันทึก
+                        บันทึกตาราง
                     </button>
                     <button onclick="resetHolidayToCalendar()" class="btn-pop bg-white/80 border border-white text-slate-500 hover:text-red-500 font-bold py-2.5 px-4 rounded-xl text-sm transition-all shadow-sm">
                         ล้างค่า
@@ -367,7 +367,7 @@
     </div>
 
     <script>
-        const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwBrabGQXuYZ9-LYaLof2hPsnrSnael7Cc_4d5n64ZyDoQ4M2BsunG1fcN6TVRqM4uZPQ/exec";
+        const CLOUD_URL = "วาง URL ของเว็บแอปที่นี่";
 
         const STAFF_MAP = [
             { id: 0, fullName: "นายพงศกร วัดเซ่ง", nickName: "ปอร์", class: "row-por" },
@@ -424,22 +424,28 @@
         }
 
         let syncTimer;
-        function syncData() {
+        // ปรับปรุงฟังก์ชัน syncData: ค่าเริ่มต้นคือบันทึกแค่ในเครื่อง (Local) จะซิงค์ Cloud เฉพาะเมื่อ pushToCloud เป็น true
+        function syncData(pushToCloud = false) {
+            // บันทึกเก็บไว้ในเครื่องกันข้อมูลหายเวลารีเฟรช
             localStorage.setItem('mlpr_v5_final', JSON.stringify(masterData));
+            
+            // หากไม่ได้กดปุ่ม "บันทึกข้อมูล" ให้หยุดการทำงานแค่นี้ ไม่ต้องส่งขึ้น Cloud
+            if (!pushToCloud) return;
+
             clearTimeout(syncTimer);
             showToast("กำลังซิงค์...", "yellow");
             syncTimer = setTimeout(async () => {
                 try {
                     if(CLOUD_URL !== "วาง URL ของเว็บแอปที่นี่") {
                         await fetch(CLOUD_URL, { method: 'POST', body: JSON.stringify(masterData) });
-                        showToast("อัปเดต Cloud สำเร็จ", "green");
+                        showToast("อัปเดตข้อมูลขึ้น Cloud สำเร็จ", "green");
                     } else {
                         showToast("บันทึกในเครื่อง (Offline)", "green");
                     }
                 } catch(e) {
                     showToast("เชื่อมต่อระบบไม่สำเร็จ", "red");
                 }
-            }, 1000); 
+            }, 500); 
         }
 
         function getKey(sId, pId, day) { return (currentYear === 2026 && currentMonth === 4) ? `${sId}-${pId}-${day}` : `${currentYear}-${currentMonth}-${sId}-${pId}-${day}`; }
@@ -550,7 +556,8 @@
             const key = `sch-${currentYear}-${currentMonth}-${day}-${sId}`;
             const cleanVal = val.trim();
             if (!cleanVal) delete masterData[key]; else masterData[key] = cleanVal;
-            renderScheduleTable(); renderSummaryTable(); renderDateHeaders(); syncData();
+            // ใส่ false เพื่อบันทึกเฉพาะในเครื่อง รอส่ง Cloud เมื่อกดปุ่ม
+            renderScheduleTable(); renderSummaryTable(); renderDateHeaders(); syncData(false);
         };
 
         window.handlePasteInSchedule = function(e, startSId, startDay) {
@@ -572,7 +579,8 @@
                     });
                 }
             });
-            renderScheduleTable(); renderSummaryTable(); renderDateHeaders(); syncData(); showToast('วางข้อมูลตารางงานสำเร็จ');
+            renderScheduleTable(); renderSummaryTable(); renderDateHeaders(); syncData(false); 
+            showToast('วางข้อมูลลงตารางงานสำเร็จ (รอส่งขึ้น Cloud)');
         };
 
         function renderInputTable() {
@@ -620,14 +628,17 @@
             });
             const sKey = getShiftKey(currentDay); const sVal = document.getElementById('daily-shift-input').value.trim().toUpperCase();
             if (masterData[sKey] !== sVal) { masterData[sKey] = sVal; hasChanges = true; }
-            if (hasChanges) { renderDateHeaders(); renderSummaryTable(); renderInputTable(); renderScheduleTable(); syncData(); }
+            if (hasChanges) { renderDateHeaders(); renderSummaryTable(); renderInputTable(); renderScheduleTable(); }
+            
+            // สำคัญ: บังคับส่งข้อมูลทั้งหมดขึ้น Cloud เสมอเมื่อคลิกปุ่มนี้
+            syncData(true); 
         }
 
         window.approvePending = function(sId, pId, day) {
             const key = getKey(sId, pId, day); const pendingKey = `pending-${key}`;
             if (masterData[pendingKey] !== undefined) {
                 const val = masterData[pendingKey]; if (val === "") delete masterData[key]; else masterData[key] = val;
-                delete masterData[pendingKey]; renderSummaryTable(); if (day === currentDay) renderInputTable(); syncData();
+                delete masterData[pendingKey]; renderSummaryTable(); if (day === currentDay) renderInputTable(); syncData(false);
             }
         };
 
@@ -686,7 +697,7 @@
             const key = getKey(sId, pId, day); const cleanVal = val.trim().replace(/[,"]/g, '');
             if (!cleanVal || cleanVal === "-") delete masterData[key];
             else { const parsed = parseInt(cleanVal); if (!isNaN(parsed)) masterData[key] = parsed; }
-            delete masterData[`pending-${key}`]; renderSummaryTable(); if (day === currentDay) renderInputTable(); syncData();
+            delete masterData[`pending-${key}`]; renderSummaryTable(); if (day === currentDay) renderInputTable(); syncData(false);
         }
 
         function togglePartialLeaveOptions() {
@@ -717,8 +728,8 @@
                 if (sId === 'ALL') STAFF_MAP.forEach(s => masterData[`sch-${y}-${m}-${d}-${s.id}`] = valToSave); else masterData[`sch-${y}-${m}-${d}-${sId}`] = valToSave;
                 loopDate.setDate(loopDate.getDate() + 1); 
             }
-            renderDateHeaders(); renderSummaryTable(); renderScheduleTable(); syncData();
-            showToast('อัปเดตตารางงานสำเร็จ');
+            renderDateHeaders(); renderSummaryTable(); renderScheduleTable(); syncData(false);
+            showToast('อัปเดตตารางงานสำเร็จ (รอส่งขึ้น Cloud)');
         }
 
         function resetHolidayToCalendar() {
@@ -732,8 +743,8 @@
                 if (sId === 'ALL') STAFF_MAP.forEach(s => delete masterData[`sch-${y}-${m}-${d}-${s.id}`]); else delete masterData[`sch-${y}-${m}-${d}-${sId}`];
                 loopDate.setDate(loopDate.getDate() + 1);
             }
-            renderDateHeaders(); renderSummaryTable(); renderScheduleTable(); syncData();
-            showToast('ล้างค่ากลับเป็นค่าเริ่มต้น', 'yellow');
+            renderDateHeaders(); renderSummaryTable(); renderScheduleTable(); syncData(false);
+            showToast('ล้างค่ากลับเป็นค่าเริ่มต้น (รอส่งขึ้น Cloud)', 'yellow');
         }
 
         function handlePasteInSummary(e, sId, pId, day) {
@@ -764,7 +775,7 @@
                     });
                 }
             });
-            renderSummaryTable(); renderInputTable(); syncData(); showToast('วางข้อมูลตารางสรุปสำเร็จ');
+            renderSummaryTable(); renderInputTable(); syncData(false); showToast('วางข้อมูลตารางสรุปสำเร็จ (รอส่งขึ้น Cloud)');
         }
 
         function showToast(msg, colorType = "green") {
@@ -783,7 +794,7 @@
             }
             
             t.classList.remove('toast-hide'); t.classList.add('toast-show');
-            if (colorType !== "yellow") { setTimeout(() => { t.classList.remove('toast-show'); t.classList.add('toast-hide'); }, 2000); }
+            if (colorType !== "yellow") { setTimeout(() => { t.classList.remove('toast-show'); t.classList.add('toast-hide'); }, 3000); }
         }
 
         function toggleSupervisorMode() {
