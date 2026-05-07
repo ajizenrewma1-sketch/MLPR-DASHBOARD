@@ -889,10 +889,11 @@
             try {
                 const inputPwd = document.getElementById('admin-pin-code').value;
                 
-                // แปลงรหัสที่กรอกเป็น Base64 แล้วสลับด้าน (Obfuscation)
-                const encodedPwd = btoa(inputPwd).split('').reverse().join('');
+                // แปลงรหัสที่กรอกเป็น Base64 (ไม่ต้องกลับหลังแล้วเพื่อป้องกันบั๊ก)
+                // รหัส SAdee11436 จะถูกแปลงเป็น U0FkZWUxMTQzNg==
+                const encodedPwd = btoa(inputPwd);
                 
-                if (encodedPwd === '==gNzQTMxVWZkF0U') {
+                if (encodedPwd === 'U0FkZWUxMTQzNg==') {
                     isSupervisorMode = true; 
                     closeAuthModal(); 
                     document.getElementById('sup-btn-text').textContent = 'ออกจากโหมดแก้ไข';
