@@ -455,7 +455,8 @@
             const key = `sch-${year}-${month}-${day}-${staffId}`;
             if (masterData[key] !== undefined) return masterData[key];
             const dayOfWeek = new Date(year, month, day).getDay();
-            return (dayOfWeek === 0 || dayOfWeek === 6) ? 'หยุด' : '';
+            // วันหยุดประจำสัปดาห์คือ วันศุกร์ (5) และ วันเสาร์ (6)
+            return (dayOfWeek === 5 || dayOfWeek === 6) ? 'หยุด' : '';
         }
 
         function getHolTypeFromSch(schVal) {
@@ -519,7 +520,9 @@
             for(let d = 1; d <= daysInMonth; d++) {
                 const dateObj = new Date(currentYear, currentMonth, d);
                 const dayName = dateObj.toLocaleDateString('th-TH', { weekday: 'short' });
-                const isToday = d === currentDay; const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+                const isToday = d === currentDay; 
+                // สีตารางแสดงวันหยุด ให้เป็น ศุกร์ (5) กับ เสาร์ (6)
+                const isWeekend = dateObj.getDay() === 5 || dateObj.getDay() === 6;
                 headTr.innerHTML += `<th class="schedule-cell border-r border-slate-200 ${isToday ? 'schedule-today text-orange-600 font-black' : ''} ${isWeekend ? 'bg-slate-100/50 text-slate-400' : ''}">
                     ${d}<br><span class="text-[8px] font-normal opacity-70">${dayName}</span>
                 </th>`;
@@ -604,7 +607,55 @@
         }
 
         function saveDailyData() {
+            // --- ส่วนเพิ่มใหม่: ตรวจสอบการกรอกในวันหยุด ---
+            let offStaffWithInput = [];
+            
+            STAFF_MAP.forEach(staff => {
+                let isInputting = false;
+                // ตรวจสอบว่าคนนี้มีข้อมูลในช่อง Input หรือไม่
+                PRODUCT_MAP.forEach(prod => {
+                    if (prod.id === 7) return;
+                    const inputEl = document.getElementById(`input-${staff.id}-${prod.id}`); 
+                    if (inputEl && inputEl.value.trim() !== "") {
+                        isInputting = true;
+                    }
+                });
+                
+                // หากมีการกรอกยอด ให้ดูว่าเป็นวันหยุดของคนๆ นั้นหรือไม่
+                if (isInputting) {
+                    const schVal = getScheduleVal(currentYear, currentMonth, currentDay, staff.id);
+                    const holType = getHolTypeFromSch(schVal);
+                    if (holType !== 'WORK') {
+                        offStaffWithInput.push(staff);
+                    }
+                }
+            });
+
             let hasChanges = false;
+
+            // หากเจอว่ามีคนกรอกในวันหยุด
+            if (offStaffWithInput.length > 0) {
+                // เอากะจากช่องที่กรอก ถ้าไม่มีให้ใส่คำว่า "สลับมาทำ"
+                let shiftVal = document.getElementById('daily-shift-input').value.trim().toUpperCase();
+                if (!shiftVal) {
+                    shiftVal = 'สลับมาทำ'; 
+                }
+                
+                const confirmMsg = `เนื่องจากเป็นวันหยุด มีการกดบันทึกยอด เพราะมีการการสลับวันหยุดกับเพื่อนหรือไม่\n\n(หากกดยืนยัน ระบบจะบันทึกยอดและแก้ไขกะในตารางให้เป็น: ${shiftVal})`;
+                
+                if (confirm(confirmMsg)) {
+                    // เปลี่ยนตารางเป็นวันทำงานให้อัตโนมัติ
+                    offStaffWithInput.forEach(staff => {
+                        const key = `sch-${currentYear}-${currentMonth}-${currentDay}-${staff.id}`;
+                        masterData[key] = shiftVal;
+                        hasChanges = true;
+                    });
+                } else {
+                    return; // หากกดยกเลิก ก็ไม่ต้องบันทึกอะไรเลย
+                }
+            }
+            // --- จบส่วนเพิ่มใหม่ ---
+
             STAFF_MAP.forEach(staff => {
                 PRODUCT_MAP.forEach(prod => {
                     if (prod.id === 7) return;
