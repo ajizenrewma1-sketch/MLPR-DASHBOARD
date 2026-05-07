@@ -118,7 +118,7 @@
             </div>
         </div>
 
-        <!-- ส่วนที่ 1: ตารางกรอก (ซ้าย) & ตารางงานรายเดือน (ขวา) (แบ่ง 50/50 แบบใช้ xl:col-span-6) -->
+        <!-- ส่วนที่ 1: ตารางกรอก (ซ้าย) & ตารางงานรายเดือน (ขวา) -->
         <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 mb-8 no-print items-start">
             
             <!-- ตารางกรอกข้อมูลรายวัน (Compact) -->
@@ -129,7 +129,6 @@
                             <thead>
                                 <tr class="input-header-row1">
                                     <th class="col-name text-xs">วันนี้</th>
-                                    <!-- ขยาย colspan เป็น 6 ให้คลุม ML ถึง LOG -->
                                     <th colspan="6" id="display-date-label" class="text-sm">7 พ.ค. 2026</th>
                                     <th class="text-[10px]">กะงาน</th>
                                     <th class="cell-a w-14" style="padding: 0;">
@@ -204,8 +203,12 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-indigo-600 mb-1">ระบุวันที่:</label>
-                    <input type="date" id="holiday-date-select" class="border-2 border-indigo-200 rounded-lg px-3 py-2 text-sm font-bold outline-none bg-white">
+                    <label class="block text-xs font-bold text-indigo-600 mb-1">ระบุช่วงวันที่ (เว้นช่อง 'ถึง' ได้ถ้าวันเดียว):</label>
+                    <div class="flex items-center gap-2">
+                        <input type="date" id="holiday-date-select" class="border-2 border-indigo-200 rounded-lg px-3 py-2 text-sm font-bold outline-none bg-white">
+                        <span class="text-xs font-bold text-indigo-400">ถึง</span>
+                        <input type="date" id="holiday-date-end" class="border-2 border-indigo-200 rounded-lg px-3 py-2 text-sm font-bold outline-none bg-white">
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-indigo-600 mb-1">สถานะวันที่เลือก:</label>
@@ -754,11 +757,24 @@
 
         function applyHoliday() {
             const sId = document.getElementById('holiday-staff-select').value;
-            const dateStr = document.getElementById('holiday-date-select').value;
+            const startStr = document.getElementById('holiday-date-select').value;
+            const endStr = document.getElementById('holiday-date-end').value;
             const type = document.getElementById('holiday-type-select').value;
-            if (!dateStr) return;
-            const dObj = new Date(dateStr);
-            const y = dObj.getFullYear(), m = dObj.getMonth(), d = dObj.getDate();
+            
+            if (!startStr) {
+                alert("กรุณาระบุวันที่เริ่มต้น");
+                return;
+            }
+
+            let startDate = new Date(startStr);
+            let endDate = endStr ? new Date(endStr) : new Date(startStr);
+
+            // สลับวันที่ถ้าเลือกวันสิ้นสุดน้อยกว่าวันเริ่มต้น
+            if (endDate < startDate) {
+                let temp = startDate;
+                startDate = endDate;
+                endDate = temp;
+            }
 
             let valToSave = '';
             if (type === 'SHIFT-A') valToSave = 'A';
@@ -777,8 +793,15 @@
                 }
             }
 
-            if (sId === 'ALL') STAFF_MAP.forEach(s => masterData[`sch-${y}-${m}-${d}-${s.id}`] = valToSave);
-            else masterData[`sch-${y}-${m}-${d}-${sId}`] = valToSave;
+            // Loop บันทึกข้อมูลตามช่วงวันที่ที่เลือก
+            let loopDate = new Date(startDate.getTime());
+            while(loopDate <= endDate) {
+                const y = loopDate.getFullYear(), m = loopDate.getMonth(), d = loopDate.getDate();
+                if (sId === 'ALL') STAFF_MAP.forEach(s => masterData[`sch-${y}-${m}-${d}-${s.id}`] = valToSave);
+                else masterData[`sch-${y}-${m}-${d}-${sId}`] = valToSave;
+                
+                loopDate.setDate(loopDate.getDate() + 1); // ขยับไปอีก 1 วัน
+            }
 
             renderDateHeaders(); renderSummaryTable(); renderScheduleTable();
             syncData();
@@ -786,13 +809,31 @@
 
         function resetHolidayToCalendar() {
             const sId = document.getElementById('holiday-staff-select').value;
-            const dateStr = document.getElementById('holiday-date-select').value;
-            if (!dateStr) return;
-            const dObj = new Date(dateStr);
-            const y = dObj.getFullYear(), m = dObj.getMonth(), d = dObj.getDate();
+            const startStr = document.getElementById('holiday-date-select').value;
+            const endStr = document.getElementById('holiday-date-end').value;
+            
+            if (!startStr) {
+                alert("กรุณาระบุวันที่เริ่มต้น");
+                return;
+            }
 
-            if (sId === 'ALL') STAFF_MAP.forEach(s => delete masterData[`sch-${y}-${m}-${d}-${s.id}`]);
-            else delete masterData[`sch-${y}-${m}-${d}-${sId}`];
+            let startDate = new Date(startStr);
+            let endDate = endStr ? new Date(endStr) : new Date(startStr);
+
+            if (endDate < startDate) {
+                let temp = startDate;
+                startDate = endDate;
+                endDate = temp;
+            }
+
+            let loopDate = new Date(startDate.getTime());
+            while(loopDate <= endDate) {
+                const y = loopDate.getFullYear(), m = loopDate.getMonth(), d = loopDate.getDate();
+                if (sId === 'ALL') STAFF_MAP.forEach(s => delete masterData[`sch-${y}-${m}-${d}-${s.id}`]);
+                else delete masterData[`sch-${y}-${m}-${d}-${sId}`];
+                
+                loopDate.setDate(loopDate.getDate() + 1);
+            }
 
             renderDateHeaders(); renderSummaryTable(); renderScheduleTable();
             syncData();
