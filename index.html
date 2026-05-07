@@ -357,8 +357,11 @@
             </div>
             <h3 class="text-lg font-bold text-slate-800 mb-1 text-center">ยืนยันสิทธิ์หัวหน้างาน</h3>
             <p class="text-[11px] text-slate-400 mb-6 text-center">กรุณาระบุรหัสผ่านเพื่อปลดล็อกโหมดแก้ไข</p>
-            <input type="password" id="auth-password" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold text-center focus:ring-2 focus:ring-indigo-400 transition-all outline-none mb-2 shadow-inner" placeholder="••••••••">
-            <p id="auth-error" class="text-red-500 text-[10px] font-bold hidden mb-4 text-center animate-pulse">รหัสผ่านไม่ถูกต้อง</p>
+            
+            <!-- เปลี่ยน ID ไม่ให้มีคำว่า password และใช้เทคนิค readonly เพื่อหลอกเบราว์เซอร์ -->
+            <input type="text" id="admin-pin-code" readonly onfocus="this.removeAttribute('readonly');" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold text-center focus:ring-2 focus:ring-indigo-400 transition-all outline-none mb-2 shadow-inner" style="-webkit-text-security: disc;" autocomplete="new-password" autocorrect="off" spellcheck="false" data-lpignore="true" placeholder="กรอกรหัสยืนยัน">
+            
+            <p id="auth-error" class="text-red-500 text-[10px] font-bold hidden mb-4 text-center animate-pulse">รหัสยืนยันไม่ถูกต้อง</p>
             <div class="flex gap-2 mt-6">
                 <button onclick="closeAuthModal()" class="flex-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-500 font-bold py-2.5 rounded-xl transition-colors text-xs shadow-sm">ยกเลิก</button>
                 <button onclick="verifyAuth()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white shadow-md font-bold py-2.5 rounded-xl transition-all text-xs btn-pop">ยืนยัน</button>
@@ -367,7 +370,8 @@
     </div>
 
     <script>
-        const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwBrabGQXuYZ9-LYaLof2hPsnrSnael7Cc_4d5n64ZyDoQ4M2BsunG1fcN6TVRqM4uZPQ/exec";
+        // อย่าลืมนำลิงก์ Google Apps Script ของคุณมาวางแทนข้อความภาษาไทยด้านล่างนี้นะครับ
+        const CLOUD_URL = "วาง URL ของเว็บแอปที่นี่";
 
         const STAFF_MAP = [
             { id: 0, fullName: "นายพงศกร วัดเซ่ง", nickName: "ปอร์", class: "row-por" },
@@ -862,7 +866,16 @@
             const content = document.getElementById('auth-modal-content');
             modal.classList.replace('hidden', 'flex'); 
             setTimeout(() => content.classList.replace('scale-95', 'scale-100'), 10);
-            document.getElementById('auth-password').value = ''; document.getElementById('auth-password').focus(); 
+            
+            const pinInput = document.getElementById('admin-pin-code');
+            pinInput.value = ''; 
+            pinInput.setAttribute('readonly', 'readonly'); // รีเซ็ตสถานะกลับเป็น readonly ก่อน
+            
+            // ใช้ setTimeout เล็กน้อยเพื่อให้เบราว์เซอร์เพิกเฉยต่อช่องนี้ ก่อนที่จะลบ readonly ออก
+            setTimeout(() => {
+                pinInput.removeAttribute('readonly');
+                pinInput.focus();
+            }, 50);
         }
         function closeAuthModal() { 
             const modal = document.getElementById('auth-modal');
@@ -870,21 +883,38 @@
             content.classList.replace('scale-100', 'scale-95');
             setTimeout(() => modal.classList.replace('flex', 'hidden'), 300);
         }
+        
+        // --- อัปเดตฟังก์ชันตรวจสอบรหัสผ่าน ---
         function verifyAuth() {
-            if (document.getElementById('auth-password').value === 'SAdee11436') {
-                isSupervisorMode = true; closeAuthModal(); document.getElementById('sup-btn-text').textContent = 'ออกจากโหมดแก้ไข';
-                document.getElementById('sup-btn').classList.replace('from-indigo-600', 'from-rose-500');
-                document.getElementById('sup-btn').classList.replace('to-blue-600', 'to-rose-600');
-                document.getElementById('holiday-management-panel').classList.remove('hidden'); document.getElementById('paste-info').classList.remove('hidden');
-                renderScheduleTable(); renderSummaryTable();
-            } else {
-                const errorText = document.getElementById('auth-error');
-                errorText.classList.remove('hidden');
-                errorText.classList.add('animate-bounce');
-                setTimeout(() => errorText.classList.remove('animate-bounce'), 1000);
+            try {
+                const inputPwd = document.getElementById('admin-pin-code').value;
+                
+                // แปลงรหัสที่กรอกเป็น Base64 แล้วสลับด้าน (Obfuscation)
+                const encodedPwd = btoa(inputPwd).split('').reverse().join('');
+                
+                if (encodedPwd === '==gNzQTMxVWZkF0U') {
+                    isSupervisorMode = true; 
+                    closeAuthModal(); 
+                    document.getElementById('sup-btn-text').textContent = 'ออกจากโหมดแก้ไข';
+                    document.getElementById('sup-btn').classList.replace('from-indigo-600', 'from-rose-500');
+                    document.getElementById('sup-btn').classList.replace('to-blue-600', 'to-rose-600');
+                    document.getElementById('holiday-management-panel').classList.remove('hidden'); 
+                    document.getElementById('paste-info').classList.remove('hidden');
+                    renderScheduleTable(); 
+                    renderSummaryTable();
+                    return; // ผ่านแล้วจบฟังก์ชัน
+                }
+            } catch(e) {
+                // กรณีพิมพ์ภาษาไทยจนบั๊กก็จะถือว่ารหัสผิดไปเลย
             }
+            
+            // กรณีรหัสผิด
+            const errorText = document.getElementById('auth-error');
+            errorText.classList.remove('hidden');
+            errorText.classList.add('animate-bounce');
+            setTimeout(() => errorText.classList.remove('animate-bounce'), 1000);
         }
-        document.getElementById('auth-password').addEventListener('keypress', (e) => { if (e.key === 'Enter') verifyAuth(); });
+        document.getElementById('admin-pin-code').addEventListener('keypress', (e) => { if (e.key === 'Enter') verifyAuth(); });
     </script>
 </body>
 </html>
