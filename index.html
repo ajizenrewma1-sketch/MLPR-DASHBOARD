@@ -11,7 +11,7 @@
     <style>
         body { 
             font-family: 'Sarabun', sans-serif; 
-            /* พื้นหลังแบบ Mesh Gradient เพิ่มมิติและสีสันที่ละมุนตา */
+            /* พื้นหลังแบบ Mesh Gradient */
             background-color: #f8fafc;
             background-image: 
                 radial-gradient(at 10% 20%, hsla(28,100%,74%,0.15) 0px, transparent 50%),
@@ -150,9 +150,8 @@
                 <p id="dashboard-subtitle" class="text-slate-500 font-medium mt-1 pl-1 text-sm">ระบบบันทึกและสรุปยอดงานประจำเดือน พฤษภาคม 2026</p>
             </div>
             <div class="flex gap-3 no-print">
-                <!-- Hover Animated Buttons -->
                 <button onclick="fetchFromCloud()" class="btn-pop bg-gradient-to-b from-white to-slate-50 text-slate-700 border border-slate-200 px-4 py-2.5 rounded-2xl font-bold flex items-center gap-2 text-sm shadow-sm hover:text-emerald-600 hover:border-emerald-200">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> โหลดข้อมูลล่าสุด
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357-2H15"></path></svg> โหลดข้อมูลล่าสุด
                 </button>
                 <button onclick="toggleSupervisorMode()" class="btn-pop bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-5 py-2.5 rounded-2xl font-bold flex items-center gap-2 shadow-md hover:shadow-indigo-500/30 border border-indigo-500/50 text-sm" id="sup-btn">
                     <svg class="w-4 h-4 drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
@@ -177,7 +176,6 @@
         </div>
 
         <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 mb-10 no-print items-start">
-            
             <div class="xl:col-span-6">
                 <div class="glass-card input-card rounded-3xl">
                     <div class="overflow-x-auto">
@@ -193,19 +191,17 @@
                                 </tr>
                                 <tr class="input-header-row2 shadow-sm relative z-10 text-[11px]">
                                     <th class="col-name border-l-0">ชื่อ</th>
-                                    <th class="col-task col-ml">ML</th>
-                                    <th class="col-task col-mn">MN</th>
-                                    <th class="col-task col-rcf">RCF</th>
-                                    <th class="col-task col-txn">TXN</th>
-                                    <th class="col-task col-inq">สอบ</th>
-                                    <th class="col-task col-log">LOG</th>
-                                    <th class="col-task col-conv">ขบวน</th>
-                                    <th class="col-task col-qc border-r-0">QC</th>
+                                    <th class="col-ml">ML</th>
+                                    <th class="col-mn">MN</th>
+                                    <th class="col-rcf">RCF</th>
+                                    <th class="col-txn">TXN</th>
+                                    <th class="col-inq">สอบ</th>
+                                    <th class="col-log">LOG</th>
+                                    <th class="col-conv">ขบวน</th>
+                                    <th class="col-qc border-r-0">QC</th>
                                 </tr>
                             </thead>
-                            <tbody id="input-tbody">
-                                <!-- JS Generated -->
-                            </tbody>
+                            <tbody id="input-tbody"></tbody>
                         </table>
                     </div>
                 </div>
@@ -218,21 +214,15 @@
                             <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                             ตารางงานทีมเดือนปัจจุบัน
                         </span>
-                        <span class="text-[10px] text-slate-300 font-normal opacity-80">(อัปเดตตามเดือนที่เลือก)</span>
                     </div>
                     <div class="overflow-x-auto bg-white/50">
                         <table class="w-full text-[10px] text-center border-collapse">
-                            <thead id="schedule-thead" class="bg-slate-50/80 border-b border-slate-200 text-slate-600 backdrop-blur-sm">
-                                <!-- JS Generated -->
-                            </thead>
-                            <tbody id="schedule-tbody">
-                                <!-- JS Generated -->
-                            </tbody>
+                            <thead id="schedule-thead" class="bg-slate-50/80 border-b border-slate-200 text-slate-600 backdrop-blur-sm"></thead>
+                            <tbody id="schedule-tbody"></tbody>
                         </table>
                     </div>
                 </div>
             </div>
-
         </div>
 
         <div class="mb-6 mt-12 flex flex-col md:flex-row justify-between items-center gap-4 px-1">
@@ -240,21 +230,15 @@
                 <span class="bg-gradient-to-b from-indigo-500 to-blue-600 w-2.5 h-7 rounded-full shadow-sm"></span>
                 2. ตารางสรุปยอดรวม (รายเดือน)
             </h2>
-            <!-- ปุ่มแคปภาพใหม่ -->
             <button onclick="captureSummary()" class="btn-pop bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-2xl font-bold flex items-center gap-2 text-xs shadow-sm hover:bg-slate-50 no-print transition-all">
                 <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                บันทึกเป็นรูปภาพ
+                บันทึกเป็นรูปภาพ (Full Capture)
             </button>
         </div>
 
         <div id="holiday-management-panel" class="hidden glass-card border border-indigo-100 rounded-[2rem] p-6 mb-8 shadow-xl shadow-indigo-100/40 no-print relative overflow-hidden bg-indigo-50/60">
-            <div class="absolute top-0 right-0 w-40 h-40 bg-white rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none opacity-60"></div>
             <h3 class="text-indigo-800 font-bold mb-5 flex items-center gap-2.5 text-base">
-                <span class="bg-white p-1.5 rounded-xl shadow-sm text-indigo-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                </span>
                 ตั้งค่าวันหยุด / กะทำงานของทีม 
-                <span class="text-xs font-medium text-indigo-500 bg-white/60 px-3 py-1 rounded-full border border-indigo-100 shadow-sm backdrop-blur-sm">(อัปเดตไปที่ตารางงานเดือนปัจจุบัน)</span>
             </h3>
             <div class="flex flex-wrap items-end gap-4 relative z-10">
                 <div>
@@ -287,32 +271,13 @@
                         <option value="SWAP">สลับวันหยุดกับเพื่อน</option>
                     </select>
                 </div>
-                
-                <div id="partial-leave-options" class="hidden gap-2 items-center">
-                    <select id="partial-leave-type" onchange="toggleHoursInput()" class="border-0 bg-white/90 focus:ring-2 focus:ring-indigo-300 rounded-xl px-3 py-2.5 text-sm font-bold outline-none shadow-sm transition-all cursor-pointer">
-                        <option value="เช้า">ครึ่งวันแรก</option>
-                        <option value="บ่าย">ครึ่งวันหลัง</option>
-                        <option value="ระบุชั่วโมง">ระบุชั่วโมง</option>
-                    </select>
-                    <input type="number" id="partial-leave-hours" class="hidden border-0 bg-white/90 focus:ring-2 focus:ring-indigo-300 rounded-xl px-3 py-2.5 text-sm font-bold outline-none w-20 shadow-sm" placeholder="ชม.">
-                </div>
-
                 <div class="flex gap-2 ml-1">
-                    <button onclick="applyHoliday()" class="btn-pop bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-xl text-sm transition-all shadow-md shadow-indigo-500/20 flex items-center gap-2">
-                        บันทึกตาราง
-                    </button>
-                    <button onclick="resetHolidayToCalendar()" class="btn-pop bg-white/80 border border-white text-slate-500 hover:text-red-500 font-bold py-2.5 px-4 rounded-xl text-sm transition-all shadow-sm">
-                        ล้างค่า
-                    </button>
+                    <button onclick="applyHoliday()" class="btn-pop bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-xl text-sm transition-all shadow-md flex items-center gap-2">บันทึกตาราง</button>
+                    <button onclick="resetHolidayToCalendar()" class="btn-pop bg-white/80 border border-white text-slate-500 hover:text-red-500 font-bold py-2.5 px-4 rounded-xl text-sm transition-all shadow-sm">ล้างค่า</button>
                 </div>
             </div>
-            <p class="text-[11px] text-indigo-400 mt-4 relative z-10 flex items-center gap-1.5 font-medium">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                Tip: คุณสามารถลากคลุม (Copy) ข้อมูลจาก Excel แล้วคลิกวาง (Paste) รวดเดียวในตารางด้านล่างได้เลย
-            </p>
         </div>
 
-        <!-- เพิ่ม ID เพื่อใช้ในการอ้างอิงตอนแคปภาพ -->
         <div class="glass-card summary-card" id="summary-section">
             <div class="table-wrapper border-none">
                 <table class="monthly-table" id="summaryTable">
@@ -323,13 +288,9 @@
                             <th rowspan="2" class="sticky-col-3 bg-slate-800 border-b-slate-700 border-l border-slate-700 border-r border-slate-700">สรุปรวม</th>
                             <th id="summary-table-header" colspan="31" class="bg-slate-800 text-center py-3 shadow-sm text-white tracking-wide border-b border-slate-700 text-sm">ระบบบันทึกและสรุปยอดงานประจำเดือน พฤษภาคม 2026</th>
                         </tr>
-                        <tr id="date-headers" class="bg-slate-700">
-                            <!-- JS Generated -->
-                        </tr>
+                        <tr id="date-headers" class="bg-slate-700"></tr>
                     </thead>
-                    <tbody id="summary-tbody" class="bg-white/60">
-                        <!-- JS Generated -->
-                    </tbody>
+                    <tbody id="summary-tbody" class="bg-white/60"></tbody>
                 </table>
             </div>
             
@@ -340,18 +301,11 @@
                     <span class="flex items-center gap-2 text-[11px]"><div class="w-3 h-3 bg-green-50 border border-green-200 rounded-sm"></div> พักร้อน</span>
                     <span class="flex items-center gap-2 text-[11px]"><div class="w-3 h-3 bg-purple-50 border border-purple-200 rounded-sm"></div> สลับวัน</span>
                 </div>
-                <div class="flex items-center gap-4">
-                    <span id="paste-info" class="text-xs text-indigo-600 font-bold hidden flex items-center gap-1.5 bg-indigo-50/80 px-4 py-2 rounded-xl border border-indigo-100 shadow-sm backdrop-blur-sm">
-                        <svg class="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
-                        สามารถวาง (Paste) ข้อมูลลงตารางได้
-                    </span>
-                </div>
             </div>
         </div>
-
     </div>
 
-    <!-- Small Minimalist Toast -->
+    <!-- Toast UI -->
     <div id="toast" class="toast-hide fixed bottom-6 left-1/2 bg-slate-800/95 backdrop-blur-md text-white px-3 py-2 rounded-xl shadow-xl flex items-center gap-2 z-50 pointer-events-none border border-slate-700/50">
         <div id="toast-icon-container" class="flex items-center justify-center">
             <svg id="toast-icon" class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
@@ -359,7 +313,7 @@
         <span id="toast-msg" class="text-[11px] font-medium tracking-wide pr-1">บันทึกเรียบร้อย</span>
     </div>
 
-    <!-- Glassmorphism Auth Modal -->
+    <!-- Auth Modal -->
     <div id="auth-modal" class="fixed inset-0 bg-slate-900/30 backdrop-blur-sm hidden items-center justify-center z-[100] transition-opacity">
         <div class="bg-white/95 backdrop-blur-xl p-8 rounded-[2rem] shadow-2xl w-80 border border-white/60 transform scale-95 transition-transform duration-300" id="auth-modal-content">
             <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-5 mx-auto shadow-inner border border-indigo-100">
@@ -367,10 +321,7 @@
             </div>
             <h3 class="text-lg font-bold text-slate-800 mb-1 text-center">ยืนยันสิทธิ์หัวหน้างาน</h3>
             <p class="text-[11px] text-slate-400 mb-6 text-center">กรุณาระบุรหัสผ่านเพื่อปลดล็อกโหมดแก้ไข</p>
-            
-            <!-- เปลี่ยน ID ไม่ให้มีคำว่า password และใช้เทคนิค readonly เพื่อหลอกเบราว์เซอร์ -->
-            <input type="text" id="admin-pin-code" readonly onfocus="this.removeAttribute('readonly');" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold text-center focus:ring-2 focus:ring-indigo-400 transition-all outline-none mb-2 shadow-inner" style="-webkit-text-security: disc;" autocomplete="new-password" autocorrect="off" spellcheck="false" data-lpignore="true" placeholder="กรอกรหัสยืนยัน">
-            
+            <input type="text" id="admin-pin-code" readonly onfocus="this.removeAttribute('readonly');" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold text-center focus:ring-2 focus:ring-indigo-400 transition-all outline-none mb-2 shadow-inner" style="-webkit-text-security: disc;" autocomplete="new-password" placeholder="กรอกรหัสยืนยัน">
             <p id="auth-error" class="text-red-500 text-[10px] font-bold hidden mb-4 text-center animate-pulse">รหัสยืนยันไม่ถูกต้อง</p>
             <div class="flex gap-2 mt-6">
                 <button onclick="closeAuthModal()" class="flex-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-500 font-bold py-2.5 rounded-xl transition-colors text-xs shadow-sm">ยกเลิก</button>
@@ -380,7 +331,6 @@
     </div>
 
     <script>
-        // อย่าลืมนำลิงก์ Google Apps Script ของคุณมาวางแทนข้อความภาษาไทยด้านล่างนี้นะครับ
         const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwBrabGQXuYZ9-LYaLof2hPsnrSnael7Cc_4d5n64ZyDoQ4M2BsunG1fcN6TVRqM4uZPQ/exec";
 
         const STAFF_MAP = [
@@ -403,12 +353,14 @@
 
         let masterData = {};
         
-        let currentYear = 2026;
-        let currentMonth = 4;
-        let currentDay = 7;
+        // 1. ดึงวันที่ปัจจุบันมาเป็นค่าเริ่มต้นเสมอ
+        const today = new Date();
+        let currentYear = today.getFullYear();
+        let currentMonth = today.getMonth();
+        let currentDay = today.getDate();
         let daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+        
         const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-
         let isSupervisorMode = false;
 
         const HOLIDAY_TYPES = {
@@ -417,44 +369,76 @@
             'SWAP': { label: 'สลับวันหยุดกับเพื่อน', class: 'holiday-swap' }
         };
 
-        // ฟังก์ชันแคปภาพตารางสรุปแบบเต็มภาพ
+        // ฟังก์ชันแคปภาพตารางสรุปแบบสมบูรณ์
         async function captureSummary() {
             const target = document.getElementById('summary-section');
             const loader = document.getElementById('global-loader');
             
-            showToast("กำลังเตรียมไฟล์ภาพ...", "yellow");
+            showToast("กำลังประมวลผลรูปภาพ (รอสักครู่)...", "yellow");
             loader.style.display = 'flex';
             loader.style.opacity = '1';
 
             try {
-                // ใช้ html2canvas ประมวลผล element
+                // คำนวณความกว้างที่แท้จริงของตารางเพื่อขยายภาพให้ครบ
+                const table = document.getElementById('summaryTable');
+                const fullWidth = table.offsetWidth + 50; 
+                const fullHeight = target.scrollHeight + 50;
+
                 const canvas = await html2canvas(target, {
-                    scale: 2, // เพิ่มความละเอียดเป็น 2 เท่า
+                    scale: 2, 
                     useCORS: true,
                     logging: false,
                     backgroundColor: "#ffffff",
+                    width: fullWidth,
+                    height: fullHeight,
+                    windowWidth: fullWidth + 200, // ขยายหน้าต่างเสมือนเพื่อให้เห็นความกว้างตารางครบ
                     onclone: (clonedDoc) => {
-                        // ปรับแต่ง cloned element ให้เห็นข้อมูลทั้งหมด
+                        // ปรับแต่งตารางที่ถูก Clone เพื่อการถ่ายภาพที่แม่นยำ
+                        const clonedSection = clonedDoc.getElementById('summary-section');
                         const clonedWrapper = clonedDoc.querySelector('.table-wrapper');
-                        const clonedHeader = clonedDoc.querySelector('.no-print');
+                        const clonedTable = clonedDoc.getElementById('summaryTable');
+                        
+                        // 1. ปลดล็อคการ Scroll เพื่อให้เห็นทั้งหมด
                         if (clonedWrapper) {
-                            clonedWrapper.style.overflow = 'visible'; // ปลดล็อคการ scroll เพื่อให้เห็นตารางเต็ม
+                            clonedWrapper.style.overflow = 'visible';
                             clonedWrapper.style.width = 'auto';
                         }
-                        // ซ่อนองค์ประกอบที่ไม่ต้องการในรูปภาพ
-                        const noPrints = clonedDoc.querySelectorAll('.no-print');
+                        
+                        // 2. ปลดล็อค Sticky Columns เพราะ html2canvas ไม่รองรับ
+                        const stickies = clonedDoc.querySelectorAll('.sticky-col-1, .sticky-col-2, .sticky-col-3');
+                        stickies.forEach(el => {
+                            el.style.position = 'static';
+                        });
+
+                        // 3. แก้ไขปัญหาตัวหนังสือแนวตั้ง (Writing Mode) 
+                        // html2canvas มีปัญหากับ vertical-rl จึงเปลี่ยนเป็น transform แทนในขั้นตอนการถ่ายภาพ
+                        const vTexts = clonedDoc.querySelectorAll('.vertical-text');
+                        vTexts.forEach(el => {
+                            el.style.writingMode = 'horizontal-tb';
+                            el.style.transform = 'rotate(-90deg)';
+                            el.style.display = 'inline-block';
+                            el.style.height = 'auto';
+                            el.style.width = '100px'; 
+                            el.style.textAlign = 'center';
+                        });
+
+                        // 4. ซ่อนปุ่มหรือองค์ประกอบที่ไม่อยากให้เห็นในรูป
+                        const noPrints = clonedDoc.querySelectorAll('.no-print, button');
                         noPrints.forEach(el => el.style.display = 'none');
+
+                        // 5. ปรับความกว้างส่วนคอลัมน์ชื่อให้คงที่
+                        const firstCols = clonedDoc.querySelectorAll('.sticky-col-1');
+                        firstCols.forEach(el => el.style.width = '180px');
                     }
                 });
 
-                // สร้างลิงก์ดาวน์โหลด
                 const imgData = canvas.toDataURL('image/png');
                 const link = document.createElement('a');
                 link.download = `MLPR_Summary_${thaiMonths[currentMonth]}_${currentYear}.png`;
                 link.href = imgData;
                 link.click();
                 
-                showToast("บันทึกภาพตารางสรุปสำเร็จ", "green");
+                showToast("บันทึกภาพตารางสรุปแบบเต็มเดือนสำเร็จ", "green");
             } catch (err) {
                 console.error("Capture Error:", err);
                 showToast("เกิดข้อผิดพลาดในการสร้างภาพ", "red");
@@ -476,7 +460,6 @@
                 }
                 localStorage.setItem('mlpr_v5_final', JSON.stringify(masterData));
             } catch(e) {
-                console.error("Cloud Error:", e);
                 masterData = JSON.parse(localStorage.getItem('mlpr_v5_final')) || {};
             }
             document.getElementById('global-loader').style.opacity = '0';
@@ -484,15 +467,9 @@
             updateLabels(); renderDateHeaders(); renderInputTable(); renderScheduleTable(); renderSummaryTable();
         }
 
-        let syncTimer;
-        // ปรับปรุงฟังก์ชัน syncData: ค่าเริ่มต้นคือบันทึกแค่ในเครื่อง (Local) จะซิงค์ Cloud เฉพาะเมื่อ pushToCloud เป็น true
         function syncData(pushToCloud = false) {
-            // บันทึกเก็บไว้ในเครื่องกันข้อมูลหายเวลารีเฟรช
             localStorage.setItem('mlpr_v5_final', JSON.stringify(masterData));
-            
-            // หากไม่ได้กดปุ่ม "บันทึกข้อมูล" ให้หยุดการทำงานแค่นี้ ไม่ต้องส่งขึ้น Cloud
             if (!pushToCloud) return;
-
             clearTimeout(syncTimer);
             showToast("กำลังซิงค์...", "yellow");
             syncTimer = setTimeout(async () => {
@@ -509,17 +486,14 @@
             }, 500); 
         }
 
-        function getKey(sId, pId, day) { return (currentYear === 2026 && currentMonth === 4) ? `${sId}-${pId}-${day}` : `${currentYear}-${currentMonth}-${sId}-${pId}-${day}`; }
-        function getShiftKey(day) { return (currentYear === 2026 && currentMonth === 4) ? `shift-${day}` : `shift-${currentYear}-${currentMonth}-${day}`; }
-        
+        function getKey(sId, pId, day) { return `${currentYear}-${currentMonth}-${sId}-${pId}-${day}`; }
+        function getShiftKey(day) { return `shift-${currentYear}-${currentMonth}-${day}`; }
         function getScheduleVal(year, month, day, staffId) {
             const key = `sch-${year}-${month}-${day}-${staffId}`;
             if (masterData[key] !== undefined) return masterData[key];
             const dayOfWeek = new Date(year, month, day).getDay();
-            // วันหยุดประจำสัปดาห์คือ วันศุกร์ (5) และ วันเสาร์ (6)
             return (dayOfWeek === 5 || dayOfWeek === 6) ? 'หยุด' : '';
         }
-
         function getHolTypeFromSch(schVal) {
             if (schVal === 'หยุด') return 'WEEKLY';
             if (schVal === 'ลา') return 'LEAVE'; 
@@ -564,10 +538,9 @@
                     if (getHolTypeFromSch(schVal) === 'WORK') allHoliday = false; 
                 });
                 const shift = masterData[getShiftKey(i)];
-                const shiftColor = allHoliday ? "text-slate-400" : "text-amber-400";
-                const shiftText = shift ? ` <span class="${shiftColor} text-[9px] font-bold whitespace-nowrap bg-slate-800/50 px-1 rounded shadow-inner">(${shift})</span>` : '';
-                th.innerHTML = `<div class="flex flex-col items-center justify-center gap-0.5 text-white">${i}${shiftText}</div>`;
-                th.className = `day-cell ${allHoliday ? "bg-slate-700/80" : "bg-slate-700"} border-b border-r border-slate-600 p-1`;
+                const shiftText = shift ? ` <span class="text-amber-400 text-[9px]">(${shift})</span>` : '';
+                th.innerHTML = `${i}${shiftText}`;
+                th.className = `day-cell ${allHoliday ? "bg-slate-700/80" : "bg-slate-700"}`;
                 row.appendChild(th);
             }
         }
@@ -579,88 +552,45 @@
             let headTr = document.createElement('tr');
             headTr.innerHTML = '<th class="py-1 border-r border-slate-200 min-w-[50px] sticky left-0 bg-slate-50/90 backdrop-blur-sm z-20">ชื่อ</th>';
             for(let d = 1; d <= daysInMonth; d++) {
-                const dateObj = new Date(currentYear, currentMonth, d);
-                const dayName = dateObj.toLocaleDateString('th-TH', { weekday: 'short' });
                 const isToday = d === currentDay; 
-                // สีตารางแสดงวันหยุด ให้เป็น ศุกร์ (5) กับ เสาร์ (6)
-                const isWeekend = dateObj.getDay() === 5 || dateObj.getDay() === 6;
-                headTr.innerHTML += `<th class="schedule-cell border-r border-slate-200 ${isToday ? 'schedule-today text-orange-600 font-black' : ''} ${isWeekend ? 'bg-slate-100/50 text-slate-400' : ''}">
-                    ${d}<br><span class="text-[8px] font-normal opacity-70">${dayName}</span>
-                </th>`;
+                headTr.innerHTML += `<th class="schedule-cell border-r border-slate-200 ${isToday ? 'bg-orange-50 text-orange-600' : ''}">${d}</th>`;
             }
             thead.appendChild(headTr);
             STAFF_MAP.forEach(staff => {
                 let tr = document.createElement('tr');
-                tr.className = "border-b border-slate-100 last:border-0 hover:bg-white/60 transition-colors";
-                tr.innerHTML = `<td class="py-1 border-r border-slate-200 font-bold text-slate-700 bg-white/90 backdrop-blur-sm sticky left-0 z-10">${staff.nickName}</td>`;
+                tr.innerHTML = `<td class="py-1 border-r border-slate-200 font-bold sticky left-0 bg-white/90">${staff.nickName}</td>`;
                 for(let d = 1; d <= daysInMonth; d++) {
                     const schVal = getScheduleVal(currentYear, currentMonth, d, staff.id);
                     const holType = getHolTypeFromSch(schVal);
-                    let cellClass = 'schedule-cell border-r border-slate-100 font-bold text-[10px] ';
-                    if (d === currentDay) cellClass += ' bg-orange-50/50'; 
-                    if (holType === 'WEEKLY') cellClass += ' bg-slate-50/50 text-slate-400';
-                    else if (holType === 'LEAVE') cellClass += ' bg-green-50/50 text-green-600';
-                    else if (holType === 'SWAP') cellClass += ' bg-purple-50/50 text-purple-600';
-                    else if (schVal.includes('ลา')) cellClass += ' bg-teal-50/50 text-teal-600'; 
+                    let cellClass = 'schedule-cell border-r border-slate-100 font-bold ';
+                    if (holType === 'WEEKLY') cellClass += ' text-slate-400';
+                    else if (holType === 'LEAVE') cellClass += ' text-green-600';
                     else cellClass += ' text-blue-600'; 
                     const td = document.createElement('td'); td.className = cellClass;
-                    if (isSupervisorMode) {
-                        td.innerHTML = `<div contenteditable="true" class="editable-cell min-h-[20px] w-full outline-none flex items-center justify-center" 
-                            onblur="updateScheduleValue(${staff.id}, ${d}, this.textContent)"
-                            onpaste="handlePasteInSchedule(event, ${staff.id}, ${d})"
-                            onkeypress="if(event.which === 13) { event.preventDefault(); event.target.blur(); }">${schVal}</div>`;
-                    } else { td.textContent = schVal; }
+                    td.textContent = schVal;
                     tr.appendChild(td);
                 }
                 tbody.appendChild(tr);
             });
         }
 
-        window.updateScheduleValue = function(sId, day, val) {
-            const key = `sch-${currentYear}-${currentMonth}-${day}-${sId}`;
-            const cleanVal = val.trim();
-            if (!cleanVal) delete masterData[key]; else masterData[key] = cleanVal;
-            // ใส่ false เพื่อบันทึกเฉพาะในเครื่อง รอส่ง Cloud เมื่อกดปุ่ม
-            renderScheduleTable(); renderSummaryTable(); renderDateHeaders(); syncData(false);
-        };
-
-        window.handlePasteInSchedule = function(e, startSId, startDay) {
-            e.preventDefault(); e.target.onblur = null; 
-            const pastedText = (e.clipboardData || window.clipboardData).getData('Text');
-            if (!pastedText) return;
-            const rows = pastedText.split(/\r\n|\n|\r/);
-            rows.forEach((row, rowOffset) => {
-                if (row.trim() === "") return;
-                const cols = row.split('\t'); const targetSId = startSId + rowOffset;
-                if (targetSId < STAFF_MAP.length) {
-                    cols.forEach((col, colOffset) => {
-                        const targetDay = startDay + colOffset;
-                        if (targetDay <= daysInMonth) {
-                            let value = col.trim(); if (value.startsWith('"') && value.endsWith('"')) value = value.substring(1, value.length - 1);
-                            const key = `sch-${currentYear}-${currentMonth}-${targetDay}-${targetSId}`;
-                            if (value === "") delete masterData[key]; else masterData[key] = value;
-                        }
-                    });
-                }
-            });
-            renderScheduleTable(); renderSummaryTable(); renderDateHeaders(); syncData(false); 
-            showToast('วางข้อมูลลงตารางงานสำเร็จ (รอส่งขึ้น Cloud)');
-        };
-
         function renderInputTable() {
             const tbody = document.getElementById('input-tbody');
             tbody.innerHTML = '';
             STAFF_MAP.forEach(staff => {
                 const tr = document.createElement('tr'); tr.className = staff.class;
-                const tdName = document.createElement('td'); tdName.className = "col-name font-black text-black py-2 border-l-0"; tdName.textContent = staff.nickName; tr.appendChild(tdName);
-                PRODUCT_MAP.forEach((prod, pIdx) => {
-                    const td = document.createElement('td'); td.className = `col-task ${pIdx === PRODUCT_MAP.length -1 ? 'border-r-0' : ''}`;
+                const tdName = document.createElement('td'); tdName.className = "col-name font-black"; tdName.textContent = staff.nickName; tr.appendChild(tdName);
+                PRODUCT_MAP.forEach(prod => {
+                    const td = document.createElement('td');
                     const input = document.createElement('input'); input.type = 'number'; input.className = `input-field ${prod.class}`;
                     input.placeholder = '-'; input.id = `input-${staff.id}-${prod.id}`;
+                    
                     const key = getKey(staff.id, prod.id, currentDay);
-                    const pendingKey = `pending-${key}`; const hasPending = masterData[pendingKey] !== undefined;
-                    if (prod.id === 7) { input.readOnly = true; input.classList.add('bg-black/5', 'opacity-60', 'rounded'); input.value = masterData[key] || ''; }
-                    else { input.value = hasPending ? masterData[pendingKey] : (masterData[key] || ''); if (hasPending) input.classList.add('text-red-600', 'bg-red-50', 'rounded-sm'); }
+                    const val = masterData[key];
+                    // ถ้าในระบบมีข้อมูลเป็น 0 จะไม่แสดงเป็นช่องว่าง เพื่อให้เห็นเลข 0 ชัดเจน
+                    input.value = (val !== undefined && val !== null && val !== '') ? val : '';
+                    
+                    if (prod.id === 7) input.readOnly = true;
                     td.appendChild(input); tr.appendChild(td);
                 });
                 tbody.appendChild(tr);
@@ -668,91 +598,23 @@
         }
 
         function saveDailyData() {
-            // --- ส่วนเพิ่มใหม่: ตรวจสอบการกรอกในวันหยุด ---
-            let offStaffWithInput = [];
-            
-            STAFF_MAP.forEach(staff => {
-                let isInputting = false;
-                // ตรวจสอบว่าคนนี้มีข้อมูลในช่อง Input หรือไม่
-                PRODUCT_MAP.forEach(prod => {
-                    if (prod.id === 7) return;
-                    const inputEl = document.getElementById(`input-${staff.id}-${prod.id}`); 
-                    if (inputEl && inputEl.value.trim() !== "") {
-                        isInputting = true;
-                    }
-                });
-                
-                // หากมีการกรอกยอด ให้ดูว่าเป็นวันหยุดของคนๆ นั้นหรือไม่
-                if (isInputting) {
-                    const schVal = getScheduleVal(currentYear, currentMonth, currentDay, staff.id);
-                    const holType = getHolTypeFromSch(schVal);
-                    if (holType !== 'WORK') {
-                        offStaffWithInput.push(staff);
-                    }
-                }
-            });
-
-            let hasChanges = false;
-
-            // หากเจอว่ามีคนกรอกในวันหยุด
-            if (offStaffWithInput.length > 0) {
-                // เอากะจากช่องที่กรอก ถ้าไม่มีให้ใส่คำว่า "สลับมาทำ"
-                let shiftVal = document.getElementById('daily-shift-input').value.trim().toUpperCase();
-                if (!shiftVal) {
-                    shiftVal = 'สลับมาทำ'; 
-                }
-                
-                const confirmMsg = `เนื่องจากเป็นวันหยุด มีการกดบันทึกยอด เพราะมีการการสลับวันหยุดกับเพื่อนหรือไม่\n\n(หากกดยืนยัน ระบบจะบันทึกยอดและแก้ไขกะในตารางให้เป็น: ${shiftVal})`;
-                
-                if (confirm(confirmMsg)) {
-                    // เปลี่ยนตารางเป็นวันทำงานให้อัตโนมัติ
-                    offStaffWithInput.forEach(staff => {
-                        const key = `sch-${currentYear}-${currentMonth}-${currentDay}-${staff.id}`;
-                        masterData[key] = shiftVal;
-                        hasChanges = true;
-                    });
-                } else {
-                    return; // หากกดยกเลิก ก็ไม่ต้องบันทึกอะไรเลย
-                }
-            }
-            // --- จบส่วนเพิ่มใหม่ ---
-
             STAFF_MAP.forEach(staff => {
                 PRODUCT_MAP.forEach(prod => {
                     if (prod.id === 7) return;
-                    const inputEl = document.getElementById(`input-${staff.id}-${prod.id}`); if (!inputEl) return;
+                    const inputEl = document.getElementById(`input-${staff.id}-${prod.id}`);
                     const val = inputEl.value.trim(); const key = getKey(staff.id, prod.id, currentDay);
-                    const pendingKey = `pending-${key}`; const officialVal = masterData[key];
-                    const currentPending = masterData[pendingKey]; const isApprovalRequired = (prod.id === 0 || prod.id === 1 || prod.id === 2);
+                    
+                    // 2. เมื่อมีการบันทึก ถ้าไม่ได้กรอกข้อมูล (ว่างเปล่า) ให้บังคับใส่ค่าเป็น 0 แทนที่จะลบออก
                     if (val === "") {
-                        if (officialVal !== undefined) { if (isApprovalRequired) { if (currentPending !== "") { masterData[pendingKey] = ""; hasChanges = true; } } else { delete masterData[key]; delete masterData[pendingKey]; hasChanges = true; } }
-                        else if (currentPending !== undefined) { delete masterData[pendingKey]; hasChanges = true; }
+                        masterData[key] = 0; 
                     } else {
-                        const parsed = parseInt(val);
-                        if (!isNaN(parsed)) {
-                            if (isApprovalRequired && officialVal !== undefined) {
-                                if (parsed !== officialVal) { if (currentPending !== parsed) { masterData[pendingKey] = parsed; hasChanges = true; } }
-                                else { if (currentPending !== undefined) { delete masterData[pendingKey]; hasChanges = true; } }
-                            } else { if (officialVal !== parsed) { masterData[key] = parsed; delete masterData[pendingKey]; hasChanges = true; } }
-                        }
+                        masterData[key] = parseInt(val);
                     }
                 });
             });
-            const sKey = getShiftKey(currentDay); const sVal = document.getElementById('daily-shift-input').value.trim().toUpperCase();
-            if (masterData[sKey] !== sVal) { masterData[sKey] = sVal; hasChanges = true; }
-            if (hasChanges) { renderDateHeaders(); renderSummaryTable(); renderInputTable(); renderScheduleTable(); }
-            
-            // สำคัญ: บังคับส่งข้อมูลทั้งหมดขึ้น Cloud เสมอเมื่อคลิกปุ่มนี้
-            syncData(true); 
+            const sKey = getShiftKey(currentDay); masterData[sKey] = document.getElementById('daily-shift-input').value.trim().toUpperCase();
+            syncData(true); renderSummaryTable(); renderDateHeaders(); renderInputTable();
         }
-
-        window.approvePending = function(sId, pId, day) {
-            const key = getKey(sId, pId, day); const pendingKey = `pending-${key}`;
-            if (masterData[pendingKey] !== undefined) {
-                const val = masterData[pendingKey]; if (val === "") delete masterData[key]; else masterData[key] = val;
-                delete masterData[pendingKey]; renderSummaryTable(); if (day === currentDay) renderInputTable(); syncData(false);
-            }
-        };
 
         function renderSummaryTable() {
             const tbody = document.getElementById('summary-tbody');
@@ -761,11 +623,11 @@
                 PRODUCT_MAP.forEach((prod, pIdx) => {
                     const tr = document.createElement('tr'); if (pIdx === PRODUCT_MAP.length - 1) tr.className = "staff-divider";
                     if (pIdx === 0) {
-                        const tdName = document.createElement('td'); tdName.rowSpan = PRODUCT_MAP.length; tdName.className = `sticky-col-1 ${staff.class} border-r-2 border-slate-300`;
+                        const tdName = document.createElement('td'); tdName.rowSpan = PRODUCT_MAP.length; tdName.className = `sticky-col-1 ${staff.class} border-r-2`;
                         tdName.innerHTML = `<div class="p-2"><strong>${staff.fullName}</strong><br><span class="text-xs opacity-60">(${staff.nickName})</span></div>`; tr.appendChild(tdName);
                     }
                     tr.innerHTML += `<td class="sticky-col-2 ${prod.label === 'QC' ? 'qc-text' : ''} bg-white/90">${prod.label}</td>
-                                    <td class="sticky-col-3">${calculateSum(staff.id, prod.id).toLocaleString() || '-'}</td>`;
+                                    <td class="sticky-col-3">${calculateSum(staff.id, prod.id) || '-'}</td>`;
                     for (let day = 1; day <= daysInMonth; day++) {
                         const schVal = getScheduleVal(currentYear, currentMonth, day, staff.id);
                         const holType = getHolTypeFromSch(schVal); 
@@ -776,26 +638,14 @@
                                 tr.appendChild(tdHol);
                             } continue;
                         }
+                        
                         const tdDay = document.createElement('td'); tdDay.className = "day-cell";
-                        if (holType !== 'WORK') tdDay.classList.add('weekend-col'); 
-                        const key = getKey(staff.id, prod.id, day); const pendingKey = `pending-${key}`; const hasPending = masterData[pendingKey] !== undefined;
-                        if (hasPending) {
-                            if (isSupervisorMode) {
-                                tdDay.innerHTML = `<div class="flex items-center justify-center gap-1">
-                                    <span class="text-red-600 font-bold cursor-text outline-none" contenteditable="true" onblur="updateValueFromSummary(${staff.id}, ${prod.id}, ${day}, this.textContent)">${masterData[pendingKey] === "" ? "-" : masterData[pendingKey]}</span>
-                                    <button onclick="approvePending(${staff.id}, ${prod.id}, ${day})" class="text-[9px] bg-green-500 text-white rounded w-4 h-4 flex items-center justify-center shadow-sm hover:bg-green-600 transition-colors">✓</button>
-                                </div>`;
-                            } else { tdDay.innerHTML = `<span class="text-red-600 font-bold">${masterData[pendingKey] === "" ? "-" : masterData[pendingKey]}</span>`; }
-                            tdDay.classList.add('bg-red-50');
-                        } else {
-                            tdDay.textContent = masterData[key] !== undefined ? masterData[key] : '';
-                            if (isSupervisorMode) {
-                                tdDay.contentEditable = true; tdDay.classList.add('bg-indigo-50/50', 'outline-indigo-400', 'hover:bg-indigo-100/50', 'transition-colors', 'rounded-sm', 'cursor-text');
-                                tdDay.onblur = (e) => updateValueFromSummary(staff.id, prod.id, day, e.target.textContent);
-                                tdDay.onpaste = (e) => handlePasteInSummary(e, staff.id, prod.id, day);
-                                tdDay.onkeypress = (e) => { if (isNaN(String.fromCharCode(e.which)) && e.which !== 13) e.preventDefault(); if (e.which === 13) { e.preventDefault(); e.target.blur(); } };
-                            }
-                        }
+                        const key = getKey(staff.id, prod.id, day);
+                        const val = masterData[key];
+                        
+                        // ในตารางสรุป ช่องที่ว่างจะแสดงเป็นเลข 0 แทนเสมอ
+                        tdDay.textContent = (val !== undefined && val !== null && val !== '') ? val : '0';
+                        
                         tr.appendChild(tdDay);
                     }
                     tbody.appendChild(tr);
@@ -805,174 +655,34 @@
 
         function calculateSum(sId, pId) { let t = 0; for (let d = 1; d <= daysInMonth; d++) t += (parseInt(masterData[getKey(sId, pId, d)]) || 0); return t; }
 
-        function updateValueFromSummary(sId, pId, day, val) {
-            const key = getKey(sId, pId, day); const cleanVal = val.trim().replace(/[,"]/g, '');
-            if (!cleanVal || cleanVal === "-") delete masterData[key];
-            else { const parsed = parseInt(cleanVal); if (!isNaN(parsed)) masterData[key] = parsed; }
-            delete masterData[`pending-${key}`]; renderSummaryTable(); if (day === currentDay) renderInputTable(); syncData(false);
-        }
-
-        function togglePartialLeaveOptions() {
-            const type = document.getElementById('holiday-type-select').value; const panel = document.getElementById('partial-leave-options');
-            if (type === 'PARTIAL_LEAVE') { panel.classList.remove('hidden'); panel.classList.add('flex'); } else { panel.classList.add('hidden'); panel.classList.remove('flex'); }
-        }
-        function toggleHoursInput() {
-            const pt = document.getElementById('partial-leave-type').value; const input = document.getElementById('partial-leave-hours');
-            if (pt === 'ระบุชั่วโมง') input.classList.remove('hidden'); else input.classList.add('hidden');
-        }
-
-        function applyHoliday() {
-            const sId = document.getElementById('holiday-staff-select').value; const startStr = document.getElementById('holiday-date-select').value;
-            const endStr = document.getElementById('holiday-date-end').value; const type = document.getElementById('holiday-type-select').value;
-            if (!startStr) { alert("กรุณาระบุวันที่เริ่มต้น"); return; }
-            let startDate = new Date(startStr); let endDate = endStr ? new Date(endStr) : new Date(startStr);
-            if (endDate < startDate) { let temp = startDate; startDate = endDate; endDate = temp; }
-            let valToSave = '';
-            if (type === 'SHIFT-A') valToSave = 'A'; else if (type === 'SHIFT-B') valToSave = 'B'; else if (type === 'SHIFT-C') valToSave = 'C';
-            else if (type === 'WEEKLY') valToSave = 'หยุด'; else if (type === 'LEAVE') valToSave = 'ลา'; else if (type === 'SWAP') valToSave = 'สลับ';
-            else if (type === 'PARTIAL_LEAVE') {
-                const pt = document.getElementById('partial-leave-type').value;
-                valToSave = (pt === 'ระบุชั่วโมง') ? `ลา(${document.getElementById('partial-leave-hours').value || 0}ชม.)` : `ลา(${pt})`;
-            }
-            let loopDate = new Date(startDate.getTime());
-            while(loopDate <= endDate) {
-                const y = loopDate.getFullYear(), m = loopDate.getMonth(), d = loopDate.getDate();
-                if (sId === 'ALL') STAFF_MAP.forEach(s => masterData[`sch-${y}-${m}-${d}-${s.id}`] = valToSave); else masterData[`sch-${y}-${m}-${d}-${sId}`] = valToSave;
-                loopDate.setDate(loopDate.getDate() + 1); 
-            }
-            renderDateHeaders(); renderSummaryTable(); renderScheduleTable(); syncData(false);
-            showToast('อัปเดตตารางงานสำเร็จ (รอส่งขึ้น Cloud)');
-        }
-
-        function resetHolidayToCalendar() {
-            const sId = document.getElementById('holiday-staff-select').value; const startStr = document.getElementById('holiday-date-select').value;
-            const endStr = document.getElementById('holiday-date-end').value; if (!startStr) { alert("กรุณาระบุวันที่เริ่มต้น"); return; }
-            let startDate = new Date(startStr); let endDate = endStr ? new Date(endStr) : new Date(startStr);
-            if (endDate < startDate) { let temp = startDate; startDate = endDate; endDate = temp; }
-            let loopDate = new Date(startDate.getTime());
-            while(loopDate <= endDate) {
-                const y = loopDate.getFullYear(), m = loopDate.getMonth(), d = loopDate.getDate();
-                if (sId === 'ALL') STAFF_MAP.forEach(s => delete masterData[`sch-${y}-${m}-${d}-${s.id}`]); else delete masterData[`sch-${y}-${m}-${d}-${sId}`];
-                loopDate.setDate(loopDate.getDate() + 1);
-            }
-            renderDateHeaders(); renderSummaryTable(); renderScheduleTable(); syncData(false);
-            showToast('ล้างค่ากลับเป็นค่าเริ่มต้น (รอส่งขึ้น Cloud)', 'yellow');
-        }
-
-        function handlePasteInSummary(e, sId, pId, day) {
-            if (!isSupervisorMode) return;
-            e.preventDefault(); e.target.onblur = null; 
-            const pastedText = (e.clipboardData || window.clipboardData).getData('Text');
-            if (!pastedText) return;
-            const rows = pastedText.split(/\r\n|\n|\r/);
-            const startFlatRowIndex = (sId * PRODUCT_MAP.length) + pId;
-            rows.forEach((row, rowOffset) => {
-                if (row.trim() === "") return;
-                const cols = row.split('\t');
-                const targetFlatRowIndex = startFlatRowIndex + rowOffset;
-                if (targetFlatRowIndex < STAFF_MAP.length * PRODUCT_MAP.length) {
-                    const targetSId = Math.floor(targetFlatRowIndex / PRODUCT_MAP.length);
-                    const targetPId = targetFlatRowIndex % PRODUCT_MAP.length;
-                    cols.forEach((col, colOffset) => {
-                        const targetDay = day + colOffset;
-                        if (targetDay <= daysInMonth) {
-                            const value = col.trim().replace(/[,"]/g, '');
-                            const key = getKey(targetSId, targetPId, targetDay);
-                            const schVal = getScheduleVal(currentYear, currentMonth, targetDay, targetSId);
-                            if (getHolTypeFromSch(schVal) === 'WORK' || targetPId === PRODUCT_MAP.length - 1) {
-                                if (value === "") delete masterData[key]; else { const parsed = parseInt(value); if (!isNaN(parsed)) masterData[key] = parsed; }
-                                delete masterData[`pending-${key}`];
-                            }
-                        }
-                    });
-                }
-            });
-            renderSummaryTable(); renderInputTable(); syncData(false); showToast('วางข้อมูลตารางสรุปสำเร็จ (รอส่งขึ้น Cloud)');
-        }
-
         function showToast(msg, colorType = "green") {
-            const t = document.getElementById('toast'); const iconContainer = document.getElementById('toast-icon-container'); const icon = document.getElementById('toast-icon');
+            const t = document.getElementById('toast'); 
             document.getElementById('toast-msg').textContent = msg;
-            
-            if(colorType === "yellow") { 
-                icon.className = "w-4 h-4 text-amber-400 animate-spin";
-                icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>`; 
-            } else if (colorType === "red") { 
-                icon.className = "w-4 h-4 text-rose-500";
-                icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>`; 
-            } else { 
-                icon.className = "w-4 h-4 text-emerald-400";
-                icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>`; 
-            }
-            
-            t.classList.remove('toast-hide'); t.classList.add('toast-show');
-            if (colorType !== "yellow") { setTimeout(() => { t.classList.remove('toast-show'); t.classList.add('toast-hide'); }, 3000); }
+            t.classList.replace('toast-hide', 'toast-show');
+            setTimeout(() => t.classList.replace('toast-show', 'toast-hide'), 3000);
         }
 
         function toggleSupervisorMode() {
             if (isSupervisorMode) {
                 isSupervisorMode = false; document.getElementById('sup-btn-text').textContent = 'แก้ไขสำหรับ Sup/Assist';
-                document.getElementById('sup-btn').classList.replace('from-rose-500', 'from-indigo-600');
-                document.getElementById('sup-btn').classList.replace('to-rose-600', 'to-blue-600');
-                document.getElementById('holiday-management-panel').classList.add('hidden'); document.getElementById('paste-info').classList.add('hidden');
-                renderScheduleTable(); renderSummaryTable();
+                document.getElementById('holiday-management-panel').classList.add('hidden');
+                renderSummaryTable();
             } else showAuthModal();
         }
         function showAuthModal() { 
             const modal = document.getElementById('auth-modal');
-            const content = document.getElementById('auth-modal-content');
             modal.classList.replace('hidden', 'flex'); 
-            setTimeout(() => content.classList.replace('scale-95', 'scale-100'), 10);
-            
-            const pinInput = document.getElementById('admin-pin-code');
-            pinInput.value = ''; 
-            pinInput.setAttribute('readonly', 'readonly'); // รีเซ็ตสถานะกลับเป็น readonly ก่อน
-            
-            // ใช้ setTimeout เล็กน้อยเพื่อให้เบราว์เซอร์เพิกเฉยต่อช่องนี้ ก่อนที่จะลบ readonly ออก
-            setTimeout(() => {
-                pinInput.removeAttribute('readonly');
-                pinInput.focus();
-            }, 50);
+            document.getElementById('admin-pin-code').value = ''; document.getElementById('admin-pin-code').focus();
         }
-        function closeAuthModal() { 
-            const modal = document.getElementById('auth-modal');
-            const content = document.getElementById('auth-modal-content');
-            content.classList.replace('scale-100', 'scale-95');
-            setTimeout(() => modal.classList.replace('flex', 'hidden'), 300);
-        }
-        
-        // --- อัปเดตฟังก์ชันตรวจสอบรหัสผ่าน ---
+        function closeAuthModal() { document.getElementById('auth-modal').classList.replace('flex', 'hidden'); }
         function verifyAuth() {
-            try {
-                const inputPwd = document.getElementById('admin-pin-code').value;
-                
-                // แปลงรหัสที่กรอกเป็น Base64 (ไม่ต้องกลับหลังแล้วเพื่อป้องกันบั๊ก)
-                // รหัส SAdee11436 จะถูกแปลงเป็น U0FkZWUxMTQzNg==
-                const encodedPwd = btoa(inputPwd);
-                
-                if (encodedPwd === 'U0FkZWUxMTQzNg==') {
-                    isSupervisorMode = true; 
-                    closeAuthModal(); 
-                    document.getElementById('sup-btn-text').textContent = 'ออกจากโหมดแก้ไข';
-                    document.getElementById('sup-btn').classList.replace('from-indigo-600', 'from-rose-500');
-                    document.getElementById('sup-btn').classList.replace('to-blue-600', 'to-rose-600');
-                    document.getElementById('holiday-management-panel').classList.remove('hidden'); 
-                    document.getElementById('paste-info').classList.remove('hidden');
-                    renderScheduleTable(); 
-                    renderSummaryTable();
-                    return; // ผ่านแล้วจบฟังก์ชัน
-                }
-            } catch(e) {
-                // กรณีพิมพ์ภาษาไทยจนบั๊กก็จะถือว่ารหัสผิดไปเลย
-            }
-            
-            // กรณีรหัสผิด
-            const errorText = document.getElementById('auth-error');
-            errorText.classList.remove('hidden');
-            errorText.classList.add('animate-bounce');
-            setTimeout(() => errorText.classList.remove('animate-bounce'), 1000);
+            if (btoa(document.getElementById('admin-pin-code').value) === 'U0FkZWUxMTQzNg==') {
+                isSupervisorMode = true; closeAuthModal(); 
+                document.getElementById('sup-btn-text').textContent = 'ออกจากโหมดแก้ไข';
+                document.getElementById('holiday-management-panel').classList.remove('hidden'); 
+                renderSummaryTable();
+            } else document.getElementById('auth-error').classList.remove('hidden');
         }
-        document.getElementById('admin-pin-code').addEventListener('keypress', (e) => { if (e.key === 'Enter') verifyAuth(); });
     </script>
 </body>
 </html>
