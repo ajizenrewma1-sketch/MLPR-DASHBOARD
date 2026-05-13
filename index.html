@@ -331,7 +331,7 @@
     </div>
 
     <script>
-        const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwBrabGQXuYZ9-LYaLof2hPsnrSnael7Cc_4d5n64ZyDoQ4M2BsunG1fcN6TVRqM4uZPQ/exec";
+        const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwBrabGQXuYZ9-LYaLof2hPsnrSnael7Cc_4d5n64ZyDoQ4M2BsunG1fcN6TVRqM4uZPQ/exec"; // ⚠️ วาง URL ตัวจริงที่ได้จาก Google Apps Script แทนที่ข้อความนี้ครับ
 
         const STAFF_MAP = [
             { id: 0, fullName: "นายพงศกร วัดเซ่ง", nickName: "ปอร์", class: "row-por" },
@@ -486,8 +486,15 @@
             }, 500); 
         }
 
-        function getKey(sId, pId, day) { return `${currentYear}-${currentMonth}-${sId}-${pId}-${day}`; }
-        function getShiftKey(day) { return `shift-${currentYear}-${currentMonth}-${day}`; }
+        // --- แก้ไขตรงนี้: ดึงความสามารถอ่านรหัสเก่าของเดือน พฤษภาคม 2026 กลับมา ---
+        function getKey(sId, pId, day) { 
+            return (currentYear === 2026 && currentMonth === 4) ? `${sId}-${pId}-${day}` : `${currentYear}-${currentMonth}-${sId}-${pId}-${day}`; 
+        }
+        function getShiftKey(day) { 
+            return (currentYear === 2026 && currentMonth === 4) ? `shift-${day}` : `shift-${currentYear}-${currentMonth}-${day}`; 
+        }
+        // -------------------------------------------------------------------------
+
         function getScheduleVal(year, month, day, staffId) {
             const key = `sch-${year}-${month}-${day}-${staffId}`;
             if (masterData[key] !== undefined) return masterData[key];
