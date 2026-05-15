@@ -491,35 +491,79 @@
         function renderSummaryTable() {
             const tbody = document.getElementById('summary-tbody');
             tbody.innerHTML = '';
+            
             STAFF_MAP.forEach(staff => {
                 PRODUCT_MAP.forEach((prod, pIdx) => {
                     const tr = document.createElement('tr');
                     if (pIdx === PRODUCT_MAP.length - 1) tr.className = "staff-divider";
+                    
+                    // ส่วนแสดงชื่อพนักงาน (รวมเซลล์)
                     if (pIdx === 0) {
-                        const tdName = document.createElement('td'); tdName.rowSpan = PRODUCT_MAP.length; tdName.className = `sticky-col-1 ${staff.class} border-r-2`;
-                        tdName.innerHTML = `<div class="p-2"><strong>${staff.fullName}</strong><br><span class="text-xs opacity-60">(${staff.nickName})</span></div>`; tr.appendChild(tdName);
+                        const tdName = document.createElement('td'); 
+                        tdName.rowSpan = PRODUCT_MAP.length; 
+                        tdName.className = `sticky-col-1 ${staff.class} border-r-2`;
+                        tdName.innerHTML = `<div class="p-2"><strong>${staff.fullName}</strong><br><span class="text-xs opacity-60">(${staff.nickName})</span></div>`; 
+                        tr.appendChild(tdName);
                     }
-                    tr.innerHTML += `<td class="sticky-col-2 ${prod.label === 'QC' ? 'qc-text' : ''} bg-white/90">${prod.label}</td>
-                                    <td class="sticky-col-3">${calculateSum(staff.id, prod.id) || '-'}</td>`;
+
+                    // ส่วนแสดงชื่อ Product และยอดรวม (Total)
+                    tr.innerHTML += `
+                        <td class="sticky-col-2 ${prod.label === 'QC' ? 'qc-text' : ''} bg-white/90">${prod.label}</td>
+                        <td class="sticky-col-3 text-blue-600 font-bold">${calculateSum(staff.id, prod.id) || '0'}</td>`;
+
+                    // วนลูปสร้างช่องข้อมูลแต่ละวัน (1-31)
                     for (let d = 1; d <= daysInMonth; d++) {
                         const schVal = getScheduleVal(currentYear, currentMonth, d, staff.id);
+                        
+                        // ตรวจสอบวันหยุด (ถ้าเป็นวันหยุดให้ข้ามการสร้างช่อง Input และใช้การรวมเซลล์เหมือนเดิม)
                         if (isFullHoliday(schVal) && pIdx < PRODUCT_MAP.length - 1) {
                             if (pIdx === 0) {
-                                const tdHol = document.createElement('td'); tdHol.rowSpan = PRODUCT_MAP.length - 1; 
+                                const tdHol = document.createElement('td'); 
+                                tdHol.rowSpan = PRODUCT_MAP.length - 1; 
                                 let label = (schVal === 'หยุด') ? 'วันหยุดประจำสัปดาห์' : (schVal === 'ลา' ? 'วันหยุดพักร้อน' : 'สลับวันหยุด');
                                 let cls = (schVal === 'หยุด') ? 'holiday-weekly' : (schVal === 'ลา' ? 'holiday-leave' : 'holiday-swap');
-                                tdHol.className = `day-cell ${cls}`; tdHol.innerHTML = `<span class="vertical-text">${label}</span>`;
+                                tdHol.className = `day-cell ${cls}`; 
+                                tdHol.innerHTML = `<span class="vertical-text">${label}</span>`;
                                 tr.appendChild(tdHol);
-                            } continue;
+                            }
+                            continue;
                         }
-                        const tdDay = document.createElement('td'); tdDay.className = "day-cell";
-                        const val = masterData[getKey(staff.id, prod.id, d)];
-                        tdDay.textContent = (val !== undefined && val !== null && val !== '') ? val : '0';
+
+                        // สร้างเซลล์ข้อมูล
+                        const tdDay = document.createElement('td'); 
+                        tdDay.className = "day-cell p-0"; // p-0 เพื่อให้ input เต็มช่อง
+
+                        const val = masterData[getKey(staff.id, prod.id, d)] || '';
+                        
+                        // ตรวจสอบสิทธิ์โหมดแก้ไข
+                        const isReadOnly = !isSupervisorMode ? 'readonly' : '';
+                        const bgColor = !isSupervisorMode ? 'bg-transparent' : 'bg-blue-50/20';
+
+                        // ID สำหรับฟังก์ชัน Paste (Paste หลายช่อง)
+                        const inputId = `summary-${staff.id}-${prod.id}-${d}`;
+
+                        tdDay.innerHTML = `
+                            <input type="number" id="${inputId}" ${isReadOnly}
+                                class="w-full h-full text-center text-xs focus:outline-none border-none ${bgColor}"
+                                value="${val}"
+                                oninput="updateDataFromSummary(${staff.id}, ${prod.id}, ${d}, this.value)">`;
+                        
                         tr.appendChild(tdDay);
                     }
                     tbody.appendChild(tr);
                 });
             });
+        }
+
+        // ฟังก์ชันช่วยบันทึกข้อมูลเมื่อมีการพิมพ์ในตารางสรุป
+        function updateDataFromSummary(staffId, prodId, day, value) {
+            const key = getKey(staffId, prodId, day);
+            masterData[key] = value;
+            // บันทึกลงเครื่องเท่านั้น รอส่ง Cloud เมื่อกดปุ่มบันทึกใหญ่
+            syncData(false); 
+            
+            // หมายเหตุ: ไม่ต้อง renderSummaryTable() ใหม่ที่นี่ เพราะจะทำให้ Focus หลุดเวลาพิมพ์
+            // แต่ยอด Total จะอัปเดตเมื่อมีการ Refresh ตารางหรือกดบันทึก
         }
 
         function calculateSum(sId, pId) { let t = 0; for (let d = 1; d <= daysInMonth; d++) t += (parseInt(masterData[getKey(sId, pId, d)]) || 0); return t; }
