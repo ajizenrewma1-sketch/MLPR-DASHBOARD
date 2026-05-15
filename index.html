@@ -591,23 +591,17 @@
         }
         function showAuthModal() { document.getElementById('auth-modal').classList.replace('hidden', 'flex'); }
         function closeAuthModal() { document.getElementById('auth-modal').classList.replace('flex', 'hidden'); }
-        async function verifyAuth() {
+        function verifyAuth() {
             const pinInput = document.getElementById('x-auth-key'); 
-            // ดึงค่าและตัดช่องว่างหน้า/หลังเผื่อเผลอกดสเปซบาร์
+            // ดึงค่าและตัดช่องว่างหน้า-หลัง
             const pinValue = pinInput.value.trim(); 
             
-            // ล้างค่าในช่องทันที
+            // ล้างค่าในช่องทันทีเพื่อป้องกันคนเห็น
             pinInput.value = ''; 
 
             try {
-                // แปลงรหัสเป็น Hash SHA-256
-                const msgBuffer = new TextEncoder().encode(pinValue);
-                const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-                const hashArray = Array.from(new Uint8Array(hashBuffer));
-                const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-                // เทียบกับรหัส SAdee11436
-                if (hashHex === '9a12bc2070e28157771de99252a13cc7ab5366c3a64d1fcd8a2721f421f5fb3d') {
+                const hiddenKey = btoa(pinValue).split('').reverse().join('');
+                if (hiddenKey === '==gNzQTMxUWZkF0U') {
                     isSupervisorMode = true; 
                     closeAuthModal(); 
                     document.getElementById('sup-btn-text').textContent = 'ออกจากโหมดแก้ไข';
