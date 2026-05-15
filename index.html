@@ -73,7 +73,12 @@
         .holiday-swap { background-color: #f5f3ff !important; color: #5b21b6 !important; }
         
         .vertical-text { writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); white-space: nowrap; font-weight: 700; font-size: 11px; padding: 10px 2px; display: inline-block; }
-        .day-cell { min-width: 45px; } .qc-text { color: #e11d48; font-weight: bold; }
+        .day-cell { 
+            min-width: 50px !important; 
+            padding: 0 !important; 
+        } 
+        
+        .qc-text { color: #e11d48; font-weight: bold; }
 
         .schedule-cell { min-width: 35px; border-right: 1px solid #e2e8f0; padding: 4px 0; outline: none; }
         .editable-cell:focus { background-color: #e0e7ff; box-shadow: inset 0 0 0 2px #6366f1; }
@@ -92,6 +97,17 @@
 
         .toast-show { transform: translate(-50%, 0) scale(1) !important; opacity: 1 !important; }
         .toast-hide { transform: translate(-50%, 20px) scale(0.95) !important; opacity: 0 !important; }
+	/* ... (โค้ด CSS เดิมของคุณที่อยู่ตรงนี้) ... */
+
+        /* ซ่อนลูกศรเพิ่ม/ลดในช่อง input แบบ number */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield; /* สำหรับ Firefox */
+        }
     </style>
 </head>
 <body class="p-3 lg:p-8 min-h-screen">
@@ -489,38 +505,71 @@
         }
 
         function renderSummaryTable() {
-            const tbody = document.getElementById('summary-tbody');
-            tbody.innerHTML = '';
-            STAFF_MAP.forEach(staff => {
-                PRODUCT_MAP.forEach((prod, pIdx) => {
-                    const tr = document.createElement('tr');
-                    if (pIdx === PRODUCT_MAP.length - 1) tr.className = "staff-divider";
+    const tbody = document.getElementById('summary-tbody');
+    tbody.innerHTML = '';
+    
+    STAFF_MAP.forEach(staff => {
+        PRODUCT_MAP.forEach((prod, pIdx) => {
+            const tr = document.createElement('tr');
+            if (pIdx === PRODUCT_MAP.length - 1) tr.className = "staff-divider";
+            
+            if (pIdx === 0) {
+                const tdName = document.createElement('td'); 
+                tdName.rowSpan = PRODUCT_MAP.length; 
+                tdName.className = `sticky-col-1 ${staff.class} border-r-2`;
+                tdName.innerHTML = `<div class="p-2"><strong>${staff.fullName}</strong><br><span class="text-xs opacity-60">(${staff.nickName})</span></div>`; 
+                tr.appendChild(tdName);
+            }
+
+            tr.innerHTML += `
+                <td class="sticky-col-2 ${prod.label === 'QC' ? 'qc-text' : ''} bg-white/90">${prod.label}</td>
+                <td class="sticky-col-3 font-bold text-blue-600">${calculateSum(staff.id, prod.id) || '0'}</td>`;
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const schVal = getScheduleVal(currentYear, currentMonth, d, staff.id);
+                
+                if (isFullHoliday(schVal) && pIdx < PRODUCT_MAP.length - 1) {
                     if (pIdx === 0) {
-                        const tdName = document.createElement('td'); tdName.rowSpan = PRODUCT_MAP.length; tdName.className = `sticky-col-1 ${staff.class} border-r-2`;
-                        tdName.innerHTML = `<div class="p-2"><strong>${staff.fullName}</strong><br><span class="text-xs opacity-60">(${staff.nickName})</span></div>`; tr.appendChild(tdName);
+                        const tdHol = document.createElement('td'); 
+                        tdHol.rowSpan = PRODUCT_MAP.length - 1; 
+                        let label = (schVal === 'หยุด') ? 'วันหยุด' : (schVal === 'ลา' ? 'วันลา' : 'สลับ');
+                        let cls = (schVal === 'หยุด') ? 'holiday-weekly' : (schVal === 'ลา' ? 'holiday-leave' : 'holiday-swap');
+                        tdHol.className = `day-cell ${cls}`; 
+                        tdHol.innerHTML = `<span class="vertical-text">${label}</span>`;
+                        tr.appendChild(tdHol);
                     }
-                    tr.innerHTML += `<td class="sticky-col-2 ${prod.label === 'QC' ? 'qc-text' : ''} bg-white/90">${prod.label}</td>
-                                    <td class="sticky-col-3">${calculateSum(staff.id, prod.id) || '-'}</td>`;
-                    for (let d = 1; d <= daysInMonth; d++) {
-                        const schVal = getScheduleVal(currentYear, currentMonth, d, staff.id);
-                        if (isFullHoliday(schVal) && pIdx < PRODUCT_MAP.length - 1) {
-                            if (pIdx === 0) {
-                                const tdHol = document.createElement('td'); tdHol.rowSpan = PRODUCT_MAP.length - 1; 
-                                let label = (schVal === 'หยุด') ? 'วันหยุดประจำสัปดาห์' : (schVal === 'ลา' ? 'วันหยุดพักร้อน' : 'สลับวันหยุด');
-                                let cls = (schVal === 'หยุด') ? 'holiday-weekly' : (schVal === 'ลา' ? 'holiday-leave' : 'holiday-swap');
-                                tdHol.className = `day-cell ${cls}`; tdHol.innerHTML = `<span class="vertical-text">${label}</span>`;
-                                tr.appendChild(tdHol);
-                            } continue;
-                        }
-                        const tdDay = document.createElement('td'); tdDay.className = "day-cell";
-                        const val = masterData[getKey(staff.id, prod.id, d)];
-                        tdDay.textContent = (val !== undefined && val !== null && val !== '') ? val : '0';
-                        tr.appendChild(tdDay);
-                    }
-                    tbody.appendChild(tr);
-                });
-            });
-        }
+                    continue;
+                }
+
+                const tdDay = document.createElement('td'); 
+                tdDay.className = "day-cell";
+                const val = masterData[getKey(staff.id, prod.id, d)] || '';
+
+                if (isSupervisorMode) {
+                    // สร้างช่องกรอกข้อมูลในโหมดแก้ไข
+                    const inputId = `summary-${staff.id}-${prod.id}-${d}`;
+                    tdDay.innerHTML = `
+                        <input type="number" id="${inputId}" 
+                            class="w-full h-full text-center text-[11px] focus:outline-none bg-blue-50/20 border-none"
+                            value="${val}"
+                            oninput="updateDataFromSummary(${staff.id}, ${prod.id}, ${d}, this.value)">`;
+                } else {
+                    tdDay.textContent = val || '0';
+                    tdDay.style.fontSize = "11px";
+                }
+                tr.appendChild(tdDay);
+            }
+            tbody.appendChild(tr);
+        });
+    });
+}
+
+// ฟังก์ชันช่วยบันทึกค่าที่พิมพ์ในตารางสรุป
+function updateDataFromSummary(staffId, prodId, day, value) {
+    const key = getKey(staffId, prodId, day);
+    masterData[key] = value;
+    syncData(false); // บันทึกในเครื่อง
+}
 
         function calculateSum(sId, pId) { let t = 0; for (let d = 1; d <= daysInMonth; d++) t += (parseInt(masterData[getKey(sId, pId, d)]) || 0); return t; }
 
@@ -599,36 +648,41 @@
 
         function toggleSupervisorMode() {
             if (isSupervisorMode) {
-                isSupervisorMode = false; document.getElementById('sup-btn-text').textContent = 'แก้ไขสำหรับ Sup/Assist';
-                document.getElementById('holiday-management-panel').classList.add('hidden'); renderScheduleTable();
+                isSupervisorMode = false; 
+                document.getElementById('sup-btn-text').textContent = 'แก้ไขสำหรับ Sup/Assist';
+                document.getElementById('holiday-management-panel').classList.add('hidden'); 
+                renderScheduleTable();
+                renderInputTable();
+                renderSummaryTable(); 
             } else showAuthModal();
         }
         function showAuthModal() { document.getElementById('auth-modal').classList.replace('hidden', 'flex'); }
         function closeAuthModal() { document.getElementById('auth-modal').classList.replace('flex', 'hidden'); }
         function verifyAuth() {
-            const pinInput = document.getElementById('x-auth-key'); 
-            // ดึงค่าและตัดช่องว่างหน้า-หลัง
-            const pinValue = pinInput.value.trim(); 
-            
-            // ล้างค่าในช่องทันทีเพื่อป้องกันคนเห็น
-            pinInput.value = ''; 
+    const pinInput = document.getElementById('x-auth-key'); 
+    const pinValue = pinInput.value.trim(); 
+    pinInput.value = ''; 
 
-            try {
-                const hiddenKey = btoa(pinValue).split('').reverse().join('');
-                if (hiddenKey === '==gNzQTMxUWZkF0U') {
-                    isSupervisorMode = true; 
-                    closeAuthModal(); 
-                    document.getElementById('sup-btn-text').textContent = 'ออกจากโหมดแก้ไข';
-                    document.getElementById('holiday-management-panel').classList.remove('hidden'); 
-                    renderScheduleTable();
-                } else {
-                    alert("รหัสไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง");
-                }
-            } catch (error) {
-                console.error(error);
-                alert("ระบบตรวจสอบรหัสขัดข้อง");
-            }
+    try {
+        const hiddenKey = btoa(pinValue).split('').reverse().join('');
+        if (hiddenKey === '==gNzQTMxUWZkF0U') {
+            isSupervisorMode = true; 
+            closeAuthModal(); 
+            document.getElementById('sup-btn-text').textContent = 'ออกจากโหมดแก้ไข';
+            document.getElementById('holiday-management-panel').classList.remove('hidden'); 
+            
+            // *** แก้ไข: เพิ่ม 2 บรรทัดนี้เพื่อให้ตารางอื่นๆ รีเฟรชแสดงช่องกรอก ***
+            renderScheduleTable();
+            renderInputTable();
+            renderSummaryTable(); 
+        } else {
+            alert("รหัสไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง");
         }
+    } catch (error) {
+        console.error(error);
+        alert("ระบบตรวจสอบรหัสขัดข้อง");
+    }
+}
 
         function showToast(msg, color) { const t = document.getElementById('toast'); document.getElementById('toast-msg').textContent = msg; t.classList.replace('toast-hide', 'toast-show'); setTimeout(() => t.classList.replace('toast-show', 'toast-hide'), 3000); }
 
@@ -691,47 +745,53 @@ document.addEventListener('input', function(e) {
 
 // ฟังก์ชันจัดการการวางข้อมูล (Paste)
         document.addEventListener('paste', function(e) {
-            if (!isSupervisorMode) return; // ทำงานเฉพาะโหมดแก้ไข
+    if (!isSupervisorMode) return;
+    const target = e.target;
+    
+    if (target.tagName === 'INPUT' && (target.id.startsWith('input-') || target.id.startsWith('summary-'))) {
+        e.preventDefault(); // ป้องกันการวางแบบปกติเพื่อไม่ให้ข้อมูลดันกัน
+        
+        const text = (e.clipboardData || window.clipboardData).getData('text');
+        if (!text) return;
 
-            const target = e.target;
-            // ตรวจสอบว่าวางในช่อง Input ของตารางบันทึกยอดหรือไม่
-            if (target.tagName === 'INPUT' && target.id.startsWith('input-')) {
-                const clipboardData = e.clipboardData || window.clipboardData;
-                const pastedText = clipboardData.getData('text');
+        const rows = text.split(/\r?\n/);
+        const parts = target.id.split('-');
+        const isSummary = parts[0] === 'summary';
 
-                // ถ้ามีการคัดลอกหลายช่อง (มี Tab หรือขึ้นบรรทัดใหม่)
-                if (pastedText.includes('\t') || pastedText.includes('\n')) {
-                    e.preventDefault(); // หยุดการวางแบบปกติของ Browser
+        rows.forEach((row, rIdx) => {
+            if (!row.trim()) return;
+            const cols = row.split('\t');
+            cols.forEach((value, cIdx) => {
+                let tId;
+                let dataKey;
 
-                    const rows = pastedText.split(/\r?\n/);
-                    // ดึง Staff ID และ Product ID เริ่มต้นจาก id ของ input (เช่น input-1-2)
-                    const parts = target.id.split('-');
-                    const startStaff = parseInt(parts[1]);
-                    const startProd = parseInt(parts[2]);
-
-                    rows.forEach((row, rIdx) => {
-                        if (row.trim() === '') return;
-                        const cols = row.split('\t');
-                        cols.forEach((value, cIdx) => {
-                            const currentStaffId = startStaff + rIdx;
-                            const currentProdId = startProd + cIdx;
-                            
-                            // หาช่องเป้าหมาย
-                            const targetInput = document.getElementById(`input-${currentStaffId}-${currentProdId}`);
-                            
-                            if (targetInput && !targetInput.readOnly) {
-                                const cleanValue = value.trim().replace(/,/g, ''); // ล้างคอมม่า
-                                targetInput.value = cleanValue;
-                                // อัปเดตข้อมูลลง masterData
-                                masterData[getKey(currentStaffId, currentProdId, currentDay)] = cleanValue;
-                            }
-                        });
-                    });
-                    syncData(false); // บันทึกในเครื่อง
-                    showToast("วางข้อมูลกระจายช่องสำเร็จ", "blue");
+                if (isSummary) {
+                    // โครงสร้างตารางสรุป: summary-staffId-prodId-day
+                    const sId = parseInt(parts[1]);
+                    const pId = parseInt(parts[2]);
+                    const startDay = parseInt(parts[3]);
+                    tId = `summary-${sId}-${pId}-${startDay + cIdx}`;
+                    dataKey = getKey(sId, pId, startDay + cIdx);
+                } else {
+                    // โครงสร้างตารางรายวัน: input-staffId-prodId
+                    const sId = parseInt(parts[1]);
+                    const pId = parseInt(parts[2]);
+                    tId = `input-${sId + rIdx}-${pId + cIdx}`;
+                    dataKey = getKey(sId + rIdx, pId + cIdx, currentDay);
                 }
-            }
+
+                const el = document.getElementById(tId);
+                if (el && !el.readOnly) {
+                    const cleanVal = value.trim().replace(/,/g, '');
+                    el.value = cleanVal;
+                    masterData[dataKey] = cleanVal;
+                }
+            });
         });
+        syncData(false);
+        showToast("วางข้อมูลสำเร็จ", "blue");
+    }
+});
     </script>
 </body>
 </html>
