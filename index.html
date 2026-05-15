@@ -5,11 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MLPR Task Tracker - Cloud Version</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- เพิ่ม html2canvas สำหรับการแคปภาพ -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { 
             font-family: 'Sarabun', sans-serif; 
+            /* พื้นหลังแบบ Mesh Gradient */
             background-color: #f8fafc;
             background-image: 
                 radial-gradient(at 10% 20%, hsla(28,100%,74%,0.15) 0px, transparent 50%),
@@ -20,6 +22,7 @@
             color: #1e293b; 
         }
 
+        /* --- UI Effects & Buttons --- */
         .glass-card {
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(16px);
@@ -28,31 +31,50 @@
             box-shadow: 0 10px 40px -10px rgba(0,0,0,0.06);
         }
         
-        .btn-pop { transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
-        .btn-pop:hover { transform: translateY(-2px); box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.2); }
-        .btn-pop:active { transform: translateY(1px); box-shadow: 0 2px 5px -2px rgba(0, 0, 0, 0.2); }
+        .btn-pop {
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .btn-pop:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.2);
+        }
+        .btn-pop:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 5px -2px rgba(0, 0, 0, 0.2);
+        }
 
+        /* --- Section 1: Daily Entry --- */
         .input-card { overflow: hidden; }
         .input-table { border-collapse: collapse; width: 100%; table-layout: fixed; }
-        .input-table th, .input-table td { border: 1px solid rgba(203, 213, 225, 0.6); padding: 4px 2px; text-align: center; font-size: 12px; transition: background 0.2s; }
+        .input-table th, .input-table td { 
+            border: 1px solid rgba(203, 213, 225, 0.6); 
+            padding: 4px 2px; text-align: center; font-size: 12px; transition: background 0.2s;
+        }
         
         .col-name { width: 80px; }
         .col-task { width: 45px; } 
 
-        .input-header-row1 th { background: linear-gradient(135deg, #f97316, #ea580c); color: white; font-weight: 700; padding-top: 6px; padding-bottom: 6px; border-color: #c2410c; text-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .input-header-row1 th { 
+            background: linear-gradient(135deg, #f97316, #ea580c); 
+            color: white; font-weight: 700; padding-top: 6px; padding-bottom: 6px; 
+            border-color: #c2410c; text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
         .input-header-row1 .cell-a { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #78350f; border-color: #d97706; }
         .input-header-row2 th { background-color: #eff6ff; font-weight: 700; height: 32px; color: #1e3a8a; }
         .input-field { width: 100%; text-align: center; font-weight: 700; font-size: 1rem; border: none; background: transparent; outline: none; transition: all 0.2s;}
         .input-field:focus { transform: scale(1.15); color: #4f46e5; }
 
+        /* Product Colors */
         .col-ml { color: #15803d; } .col-mn { color: #b91c1c; } .col-rcf { color: #c2410c; }      
         .col-txn { color: #1d4ed8; } .col-inq { color: #7e22ce; } .col-log { color: #b45309; }      
         .col-conv { color: #b91c1c; } .col-qc { color: #be123c; }       
 
+        /* Softened Row Colors */
         .row-por { background-color: rgba(254, 252, 232, 0.7); } .row-mi { background-color: rgba(253, 242, 248, 0.7); }  
         .row-peape { background-color: rgba(240, 253, 244, 0.7); } .row-pime { background-color: rgba(239, 246, 255, 0.7); } 
         .input-table tbody tr:hover td { background-color: rgba(255,255,255,0.9); }
 
+        /* --- Section 2: Summary Table --- */
         .summary-card { padding: 1.5rem; border-radius: 24px; }
         .table-wrapper { overflow-x: auto; border-radius: 12px; border: 1px solid #cbd5e1; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
         .monthly-table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 13px; }
@@ -64,9 +86,11 @@
         .sticky-col-3 { position: sticky; left: 300px; z-index: 10; width: 90px; min-width: 90px; border-right: 3px solid #94a3b8 !important; }
         
         td.sticky-col-3 { background-color: #fffbeb !important; font-weight: 800; color: #92400e; }
+
         .staff-divider td { border-bottom: 4px solid #cbd5e1 !important; }
         .monthly-table tbody tr:hover td { background-color: #f8fafc !important; }
 
+        /* Holiday Cell Styles */
         .weekend-col { background-color: #f8fafc; color: #94a3b8; }
         .holiday-weekly { background-color: #f1f5f9 !important; color: #64748b !important; }
         .holiday-leave { background-color: #f0fdf4 !important; color: #166534 !important; }
@@ -75,6 +99,7 @@
         .vertical-text { writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); white-space: nowrap; font-weight: 700; font-size: 11px; padding: 10px 2px; display: inline-block; }
         .day-cell { min-width: 45px; } .qc-text { color: #e11d48; font-weight: bold; }
 
+        /* Schedule Table */
         .schedule-cell { min-width: 35px; border-right: 1px solid #e2e8f0; padding: 4px 0; }
         .schedule-today { background-color: #ffedd5; border: 1px solid #fb923c !important; box-shadow: inset 0 0 5px rgba(251,146,60,0.2);}
         .editable-cell { cursor: text; transition: all 0.2s; border-radius: 4px; padding: 2px; }
@@ -87,11 +112,15 @@
             body { background: white; padding: 0; }
         }
 
-        #global-loader { position: fixed; inset: 0; background: rgba(255,255,255,0.7); backdrop-filter: blur(10px); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s; }
+        /* Premium Loader */
+        #global-loader {
+            position: fixed; inset: 0; background: rgba(255,255,255,0.7); backdrop-filter: blur(10px); z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s;
+        }
         .spinner { border: 4px solid #e2e8f0; border-top-color: #f97316; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        .mini-spinner { border: 2px solid #fcd34d; border-top-color: #f59e0b; border-radius: 50%; width: 12px; height: 12px; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* Small Minimalist Toast */
         .toast-show { transform: translate(-50%, 0) scale(1) !important; opacity: 1 !important; }
         .toast-hide { transform: translate(-50%, 20px) scale(0.95) !important; opacity: 0 !important; }
     </style>
@@ -110,11 +139,12 @@
             <div>
                 <h1 class="text-4xl lg:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-slate-800 to-indigo-900 drop-shadow-sm pb-1">
                     MLPR <span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-rose-500">DASHBOARD</span> 
-                    
-                    <!-- ส่วนแสดงสถานะการเชื่อมต่อ Cloud -->
-                    <span id="cloud-status-badge" class="inline-flex items-center gap-1.5 text-[11px] bg-amber-50 text-amber-600 px-3 py-1 rounded-full align-middle ml-2 border border-amber-200 shadow-sm font-bold uppercase tracking-widest cursor-help" title="กำลังตรวจสอบการเชื่อมต่อกับ Cloud">
-                        <span class="mini-spinner"></span>
-                        Checking Cloud...
+                    <span class="inline-flex items-center gap-1.5 text-[11px] bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full align-middle ml-2 border border-emerald-200 shadow-sm font-bold uppercase tracking-widest">
+                        <span class="relative flex h-2 w-2">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        Cloud
                     </span>
                 </h1>
                 <p id="dashboard-subtitle" class="text-slate-500 font-medium mt-1 pl-1 text-sm">ระบบบันทึกและสรุปยอดงานประจำเดือน พฤษภาคม 2026</p>
@@ -181,7 +211,7 @@
                 <div class="glass-card rounded-3xl overflow-hidden flex flex-col h-full border border-slate-200/60">
                     <div class="bg-gradient-to-r from-slate-700 to-slate-800 text-white font-bold px-5 py-3 flex justify-between items-center text-xs shadow-md relative z-10 border-b border-slate-600">
                         <span class="flex items-center gap-2">
-                            <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v12a2 2 0 002 2z"></path></svg>
                             ตารางงานทีมเดือนปัจจุบัน
                         </span>
                     </div>
@@ -322,16 +352,12 @@
         ];
 
         let masterData = {};
-        
-        const today = new Date();
-        let currentYear = today.getFullYear();
-        let currentMonth = today.getMonth();
-        let currentDay = today.getDate();
+        let currentYear = 2026;
+        let currentMonth = 4;
+        let currentDay = 7;
         let daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-        
         const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
         let isSupervisorMode = false;
-        let syncTimer; // <--- แก้ไขปัญหาตรงนี้ (ประกาศตัวแปร syncTimer)
 
         const HOLIDAY_TYPES = {
             'WEEKLY': { label: 'วันหยุดประจำสัปดาห์', class: 'holiday-weekly' },
@@ -339,83 +365,99 @@
             'SWAP': { label: 'สลับวันหยุดกับเพื่อน', class: 'holiday-swap' }
         };
 
-        // เปลี่ยนสถานะแถบป้าย Cloud บนหน้าจอ
-        function setCloudStatus(status) {
-            const badge = document.getElementById('cloud-status-badge');
-            if (status === 'online') {
-                badge.className = "inline-flex items-center gap-1.5 text-[11px] bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full align-middle ml-2 border border-emerald-200 shadow-sm font-bold uppercase tracking-widest cursor-help";
-                badge.title = "เชื่อมต่อฐานข้อมูล Cloud ปกติ";
-                badge.innerHTML = `<span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span></span> Cloud Online`;
-            } else if (status === 'offline') {
-                badge.className = "inline-flex items-center gap-1.5 text-[11px] bg-red-50 text-red-600 px-3 py-1 rounded-full align-middle ml-2 border border-red-200 shadow-sm font-bold uppercase tracking-widest cursor-help";
-                badge.title = "ออฟไลน์: บันทึกข้อมูลลงในเครื่องเท่านั้น";
-                badge.innerHTML = `<span class="relative flex h-2 w-2"><span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span></span> Offline Mode`;
-            }
-        }
-
+        // ฟังก์ชันแคปภาพตารางสรุปแบบสมบูรณ์
         async function captureSummary() {
             const target = document.getElementById('summary-section');
             const loader = document.getElementById('global-loader');
+            
             showToast("กำลังประมวลผลรูปภาพ (รอสักครู่)...", "yellow");
-            loader.style.display = 'flex'; loader.style.opacity = '1';
+            loader.style.display = 'flex';
+            loader.style.opacity = '1';
+
             try {
+                // คำนวณความกว้างที่แท้จริงของตารางเพื่อขยายภาพให้ครบ
                 const table = document.getElementById('summaryTable');
                 const fullWidth = table.offsetWidth + 50; 
                 const fullHeight = target.scrollHeight + 50;
 
                 const canvas = await html2canvas(target, {
-                    scale: 2, useCORS: true, logging: false, backgroundColor: "#ffffff",
-                    width: fullWidth, height: fullHeight, windowWidth: fullWidth + 200,
+                    scale: 2, 
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: "#ffffff",
+                    width: fullWidth,
+                    height: fullHeight,
+                    windowWidth: fullWidth + 200, // ขยายหน้าต่างเสมือนเพื่อให้เห็นความกว้างตารางครบ
                     onclone: (clonedDoc) => {
+                        // ปรับแต่งตารางที่ถูก Clone เพื่อการถ่ายภาพที่แม่นยำ
+                        const clonedSection = clonedDoc.getElementById('summary-section');
                         const clonedWrapper = clonedDoc.querySelector('.table-wrapper');
-                        if (clonedWrapper) { clonedWrapper.style.overflow = 'visible'; clonedWrapper.style.width = 'auto'; }
+                        const clonedTable = clonedDoc.getElementById('summaryTable');
+                        
+                        // 1. ปลดล็อคการ Scroll เพื่อให้เห็นทั้งหมด
+                        if (clonedWrapper) {
+                            clonedWrapper.style.overflow = 'visible';
+                            clonedWrapper.style.width = 'auto';
+                        }
+                        
+                        // 2. ปลดล็อค Sticky Columns เพราะ html2canvas ไม่รองรับ
                         const stickies = clonedDoc.querySelectorAll('.sticky-col-1, .sticky-col-2, .sticky-col-3');
-                        stickies.forEach(el => el.style.position = 'static');
+                        stickies.forEach(el => {
+                            el.style.position = 'static';
+                        });
+
+                        // 3. แก้ไขปัญหาตัวหนังสือแนวตั้ง (Writing Mode) 
+                        // html2canvas มีปัญหากับ vertical-rl จึงเปลี่ยนเป็น transform แทนในขั้นตอนการถ่ายภาพ
                         const vTexts = clonedDoc.querySelectorAll('.vertical-text');
                         vTexts.forEach(el => {
-                            el.style.writingMode = 'horizontal-tb'; el.style.transform = 'rotate(-90deg)';
-                            el.style.display = 'inline-block'; el.style.height = 'auto'; el.style.width = '100px'; el.style.textAlign = 'center';
+                            el.style.writingMode = 'horizontal-tb';
+                            el.style.transform = 'rotate(-90deg)';
+                            el.style.display = 'inline-block';
+                            el.style.height = 'auto';
+                            el.style.width = '100px'; 
+                            el.style.textAlign = 'center';
                         });
+
+                        // 4. ซ่อนปุ่มหรือองค์ประกอบที่ไม่อยากให้เห็นในรูป
                         const noPrints = clonedDoc.querySelectorAll('.no-print, button');
                         noPrints.forEach(el => el.style.display = 'none');
+
+                        // 5. ปรับความกว้างส่วนคอลัมน์ชื่อให้คงที่
                         const firstCols = clonedDoc.querySelectorAll('.sticky-col-1');
                         firstCols.forEach(el => el.style.width = '180px');
                     }
                 });
+
                 const imgData = canvas.toDataURL('image/png');
-                const link = document.createElement('a'); link.download = `MLPR_Summary_${thaiMonths[currentMonth]}_${currentYear}.png`;
-                link.href = imgData; link.click();
+                const link = document.createElement('a');
+                link.download = `MLPR_Summary_${thaiMonths[currentMonth]}_${currentYear}.png`;
+                link.href = imgData;
+                link.click();
+                
                 showToast("บันทึกภาพตารางสรุปแบบเต็มเดือนสำเร็จ", "green");
             } catch (err) {
-                console.error("Capture Error:", err); showToast("เกิดข้อผิดพลาดในการสร้างภาพ", "red");
+                console.error("Capture Error:", err);
+                showToast("เกิดข้อผิดพลาดในการสร้างภาพ", "red");
             } finally {
-                loader.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 500);
+                loader.style.opacity = '0';
+                setTimeout(() => loader.style.display = 'none', 500);
             }
         }
 
         async function fetchFromCloud() {
             document.getElementById('global-loader').style.display = 'flex';
             setTimeout(() => document.getElementById('global-loader').style.opacity = '1', 10);
-            let isConnected = false;
             try {
-                if(CLOUD_URL && CLOUD_URL !== "") {
-                    // ใช้ no-cache เพื่อบังคับโหลดข้อมูลล่าสุดเสมอ ป้องกันการอ่านข้อมูลเก่าจากแคชเบราว์เซอร์
-                    const response = await fetch(CLOUD_URL, { cache: "no-store" });
-                    if (response.ok) {
-                        masterData = await response.json();
-                        isConnected = true;
-                    } else { throw new Error("Status code error"); }
+                if(CLOUD_URL !== "วาง URL ของเว็บแอปที่นี่") {
+                    const response = await fetch(CLOUD_URL);
+                    masterData = await response.json();
+                } else {
+                    masterData = JSON.parse(localStorage.getItem('mlpr_v5_final')) || {};
                 }
+                localStorage.setItem('mlpr_v5_final', JSON.stringify(masterData));
             } catch(e) {
-                console.error("Cloud Error:", e);
                 masterData = JSON.parse(localStorage.getItem('mlpr_v5_final')) || {};
-                isConnected = false;
-                showToast("แจ้งเตือน: ไม่สามารถเชื่อมต่อกับ Cloud ได้ (โปรดตรวจสอบการตั้งค่า Apps Script)", "red");
             }
-            
-            // อัปเดตสถานะป้ายเตือน
-            setCloudStatus(isConnected ? 'online' : 'offline');
-
             document.getElementById('global-loader').style.opacity = '0';
             setTimeout(() => document.getElementById('global-loader').style.display = 'none', 500);
             updateLabels(); renderDateHeaders(); renderInputTable(); renderScheduleTable(); renderSummaryTable();
@@ -426,38 +468,22 @@
             if (!pushToCloud) return;
             clearTimeout(syncTimer);
             showToast("กำลังซิงค์...", "yellow");
-            
             syncTimer = setTimeout(async () => {
                 try {
-                    if(CLOUD_URL && CLOUD_URL !== "") {
-                        // กลับมาใช้ mode: 'no-cors' อย่างเต็มรูปแบบ และไม่เช็ค response.ok 
-                        // เพราะ Google จะส่ง Redirect กลับมาโดยไม่มี CORS Header ทำให้เช็ค ok ไม่ได้
-                        await fetch(CLOUD_URL, { 
-                            method: 'POST',
-                            mode: 'no-cors',
-                            headers: { 
-                                'Content-Type': 'text/plain;charset=utf-8' 
-                            },
-                            body: JSON.stringify(masterData) 
-                        });
-                        
-                        // ถ้ารันมาถึงบรรทัดนี้ได้โดยไม่มี Network Error ถือว่าส่งข้อมูลสำเร็จแน่นอน
+                    if(CLOUD_URL !== "วาง URL ของเว็บแอปที่นี่") {
+                        await fetch(CLOUD_URL, { method: 'POST', body: JSON.stringify(masterData) });
                         showToast("อัปเดตข้อมูลขึ้น Cloud สำเร็จ", "green");
-                        setCloudStatus('online');
                     } else {
                         showToast("บันทึกในเครื่อง (Offline)", "green");
                     }
                 } catch(e) {
-                    console.error("POST Error:", e);
-                    showToast("ไม่สามารถส่งข้อมูลไป Cloud ได้", "red");
-                    setCloudStatus('offline');
+                    showToast("เชื่อมต่อระบบไม่สำเร็จ", "red");
                 }
             }, 500); 
         }
 
-        function getKey(sId, pId, day) { return (currentYear === 2026 && currentMonth === 4) ? `${sId}-${pId}-${day}` : `${currentYear}-${currentMonth}-${sId}-${pId}-${day}`; }
-        function getShiftKey(day) { return (currentYear === 2026 && currentMonth === 4) ? `shift-${day}` : `shift-${currentYear}-${currentMonth}-${day}`; }
-
+        function getKey(sId, pId, day) { return `${currentYear}-${currentMonth}-${sId}-${pId}-${day}`; }
+        function getShiftKey(day) { return `shift-${currentYear}-${currentMonth}-${day}`; }
         function getScheduleVal(year, month, day, staffId) {
             const key = `sch-${year}-${month}-${day}-${staffId}`;
             if (masterData[key] !== undefined) return masterData[key];
@@ -554,11 +580,8 @@
                     const td = document.createElement('td');
                     const input = document.createElement('input'); input.type = 'number'; input.className = `input-field ${prod.class}`;
                     input.placeholder = '-'; input.id = `input-${staff.id}-${prod.id}`;
-                    
                     const key = getKey(staff.id, prod.id, currentDay);
-                    const val = masterData[key];
-                    input.value = (val !== undefined && val !== null && val !== '') ? val : '';
-                    
+                    input.value = masterData[key] || '';
                     if (prod.id === 7) input.readOnly = true;
                     td.appendChild(input); tr.appendChild(td);
                 });
@@ -572,12 +595,7 @@
                     if (prod.id === 7) return;
                     const inputEl = document.getElementById(`input-${staff.id}-${prod.id}`);
                     const val = inputEl.value.trim(); const key = getKey(staff.id, prod.id, currentDay);
-                    
-                    if (val === "") {
-                        masterData[key] = 0; 
-                    } else {
-                        masterData[key] = parseInt(val);
-                    }
+                    if (val === "") delete masterData[key]; else masterData[key] = parseInt(val);
                 });
             });
             const sKey = getShiftKey(currentDay); masterData[sKey] = document.getElementById('daily-shift-input').value.trim().toUpperCase();
@@ -594,7 +612,7 @@
                         const tdName = document.createElement('td'); tdName.rowSpan = PRODUCT_MAP.length; tdName.className = `sticky-col-1 ${staff.class} border-r-2`;
                         tdName.innerHTML = `<div class="p-2"><strong>${staff.fullName}</strong><br><span class="text-xs opacity-60">(${staff.nickName})</span></div>`; tr.appendChild(tdName);
                     }
-                    tr.innerHTML += `<td class="sticky-col-2 ${prod.label === 'QC' ? 'qc-text' : ''} bg-white/90">${prod.label}</td>
+                    tr.innerHTML += `<td class="sticky-col-2 bg-white/90">${prod.label}</td>
                                     <td class="sticky-col-3">${calculateSum(staff.id, prod.id) || '-'}</td>`;
                     for (let day = 1; day <= daysInMonth; day++) {
                         const schVal = getScheduleVal(currentYear, currentMonth, day, staff.id);
@@ -606,12 +624,9 @@
                                 tr.appendChild(tdHol);
                             } continue;
                         }
-                        
                         const tdDay = document.createElement('td'); tdDay.className = "day-cell";
                         const key = getKey(staff.id, prod.id, day);
-                        const val = masterData[key];
-                        
-                        tdDay.textContent = (val !== undefined && val !== null && val !== '') ? val : '0';
+                        tdDay.textContent = masterData[key] || '';
                         tr.appendChild(tdDay);
                     }
                     tbody.appendChild(tr);
