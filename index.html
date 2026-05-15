@@ -474,11 +474,12 @@
             syncTimer = setTimeout(async () => {
                 try {
                     if(CLOUD_URL !== "วาง URL ของเว็บแอปที่นี่") {
-                        // ส่งข้อมูลแบบ text/plain เพื่อหลีกเลี่ยงการถูก Block CORS จาก Google Apps Script
+                        // นำ mode: 'no-cors' กลับมาใส่ เพื่อแก้ปัญหาการถูก Block (CORS) สีแดง
                         await fetch(CLOUD_URL, { 
                             method: 'POST', 
+                            mode: 'no-cors',
                             headers: {
-                                'Content-Type': 'text/plain;charset=utf-8',
+                                'Content-Type': 'text/plain;charset=utf-8'
                             },
                             body: JSON.stringify(masterData) 
                         });
