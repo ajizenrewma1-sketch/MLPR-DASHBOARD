@@ -108,6 +108,53 @@
         input[type="number"] {
             -moz-appearance: textfield; /* สำหรับ Firefox */
         }
+	holiday-weekly { 
+            background-color: #f1f5f9 !important; 
+            color: #64748b !important; 
+        } /* หยุดประจำสัปดาห์ - สีเทา */
+
+        .holiday-leave { 
+            background-color: #f0fdf4 !important; 
+            color: #16a34a !important; 
+        } /* หยุดพักร้อน - สีเขียว */
+
+        .holiday-swap { 
+            background-color: #eff6ff !important; 
+            color: #2563eb !important; 
+        } /* สลับวันหยุดกับเพื่อน - สีฟ้า */
+
+        /* 2. สไตล์สำหรับลายน้ำ "ลาพักร้อน (ช่วงเวลา)" */
+        .watermark-cell {
+            position: relative;
+            background-color: #fffbeb !important; /* พื้นหลังเหลืองนวลๆ */
+        }
+
+        .watermark-cell::after {
+            content: "ลาพักร้อน (ช่วงเวลา)";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-20deg);
+            font-size: 8px;
+            color: rgba(217, 119, 6, 0.15); /* สีส้มจางมากๆ (ไม่บังตัวเลข) */
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: 0;
+            font-weight: bold;
+        }
+
+        /* ปรับให้ช่อง Input อยู่เหนือลายน้ำและโปร่งใส */
+        .watermark-cell input {
+            position: relative;
+            z-index: 1;
+            background: transparent !important;
+        }
+
+        /* ปรับความกว้างช่องและเอาช่องว่างออก */
+        .day-cell { 
+            min-width: 50px !important; 
+            padding: 0 !important; 
+        }
     </style>
 </head>
 <body class="p-3 lg:p-8 min-h-screen">
@@ -329,8 +376,10 @@
         function getScheduleKey(year, month, day, staffId) { return `sch-${year}-${month}-${day}-${staffId}`; }
 
         function isFullHoliday(val) {
-            return (val === 'หยุด' || val === 'ลา' || val === 'สลับ');
-        }
+    if (!val) return false;
+    // หยุดเต็มวันประกอบด้วย: หยุด, ลา, สลับ (ที่ไม่ใช่แบบระบุช่วงเวลา)
+    return (val === 'หยุด' || val === 'ลา' || val.includes('สลับ')) && !val.includes('ช่วงเวลา');
+}
 
         function getScheduleVal(year, month, day, staffId) {
             const key = getScheduleKey(year, month, day, staffId);
@@ -518,46 +567,59 @@
                         <td class="sticky-col-3 font-bold text-blue-600">${calculateSum(staff.id, prod.id) || '0'}</td>`;
 
                     for (let d = 1; d <= daysInMonth; d++) {
-                        const schVal = getScheduleVal(currentYear, currentMonth, d, staff.id);
-                        
-                        // ตรวจสอบวันหยุด: แสดงชื่อเต็มตามสถานะใน Dropdown
-                        if (isFullHoliday(schVal) && pIdx < PRODUCT_MAP.length - 1) {
-                            if (pIdx === 0) {
-                                const tdHol = document.createElement('td'); 
-                                tdHol.rowSpan = PRODUCT_MAP.length - 1; 
-                                
-                                // แก้ไขจุดนี้: แสดงค่า schVal (ชื่อสถานะเต็ม) ตรงๆ
-                                let label = schVal || 'วันหยุด'; 
-                                
-                                // กำหนดสีตามประเภทสถานะ
-                                let cls = 'holiday-weekly';
-                                if (schVal.includes('ลา')) cls = 'holiday-leave';
-                                if (schVal.includes('สลับ')) cls = 'holiday-swap';
-
-                                tdHol.className = `day-cell ${cls}`; 
-                                tdHol.innerHTML = `<span class="vertical-text">${label}</span>`;
-                                tr.appendChild(tdHol);
-                            }
-                            continue;
-                        }
-
-                        const tdDay = document.createElement('td'); 
-                        tdDay.className = "day-cell";
-                        const val = masterData[getKey(staff.id, prod.id, d)] || '';
-
-                        if (isSupervisorMode) {
-                            const inputId = `summary-${staff.id}-${prod.id}-${d}`;
-                            tdDay.innerHTML = `
-                                <input type="number" id="${inputId}" 
-                                    class="w-full h-full text-center text-[11px] focus:outline-none bg-blue-50/20 border-none"
-                                    value="${val}"
-                                    oninput="updateDataFromSummary(${staff.id}, ${prod.id}, ${d}, this.value)">`;
-                        } else {
-                            tdDay.textContent = val || '0';
-                            tdDay.style.fontSize = "11px";
-                        }
-                        tr.appendChild(tdDay);
+            const schVal = getScheduleVal(currentYear, currentMonth, d, staff.id);
+            
+            // 1. กรณีเป็นวันหยุดเต็มวัน (รวมเซลล์แนวตั้ง)
+            if (isFullHoliday(schVal) && pIdx < PRODUCT_MAP.length - 1) {
+                if (pIdx === 0) {
+                    const tdHol = document.createElement('td'); 
+                    tdHol.rowSpan = PRODUCT_MAP.length - 1; 
+                    
+                    // ปรับชื่อ Label ตามเงื่อนไข
+                    let label = "";
+                    let cls = "";
+                    if (schVal === 'หยุด') {
+                        label = "วันหยุดประจำสัปดาห์";
+                        cls = "holiday-weekly";
+                    } else if (schVal === 'ลา') {
+                        label = "วันหยุดพักร้อน";
+                        cls = "holiday-leave";
+                    } else if (schVal.includes('สลับ')) {
+                        label = "สลับวันหยุดกับเพื่อน";
+                        cls = "holiday-swap";
                     }
+
+                    tdHol.className = `day-cell ${cls} font-bold`; 
+                    tdHol.innerHTML = `<span class="vertical-text" style="font-size: 10px;">${label}</span>`;
+                    tr.appendChild(tdHol);
+                }
+                continue;
+            }
+
+            // 2. กรณีเป็นวันทำงานปกติ หรือ ลาพักร้อนแบบระบุช่วงเวลา (ไม่รวมเซลล์)
+            const tdDay = document.createElement('td'); 
+            tdDay.className = "day-cell p-0";
+            
+            // เช็คว่าเป็นลาแบบระบุช่วงเวลาหรือไม่ เพื่อใส่ลายน้ำ
+            if (schVal && schVal.includes('ช่วงเวลา')) {
+                tdDay.classList.add('watermark-cell');
+            }
+
+            const val = masterData[getKey(staff.id, prod.id, d)] || '';
+            
+            if (isSupervisorMode) {
+                const inputId = `summary-${staff.id}-${prod.id}-${d}`;
+                tdDay.innerHTML = `
+                    <input type="number" id="${inputId}" 
+                        class="w-full h-full text-center text-[11px] focus:outline-none border-none p-1"
+                        value="${val}"
+                        oninput="updateDataFromSummary(${staff.id}, ${prod.id}, ${d}, this.value)">`;
+            } else {
+                tdDay.textContent = val || '0';
+                tdDay.style.fontSize = "11px";
+            }
+            tr.appendChild(tdDay);
+        }
                     tbody.appendChild(tr);
                 });
             });
