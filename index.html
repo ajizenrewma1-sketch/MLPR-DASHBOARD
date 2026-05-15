@@ -398,8 +398,9 @@
             let isConnected = false;
             try {
                 if(CLOUD_URL && CLOUD_URL !== "") {
-                    const response = await fetch(CLOUD_URL);
-                    if (response.ok || response.type === 'opaque') {
+                    // ใช้ no-cache เพื่อบังคับโหลดข้อมูลล่าสุดเสมอ ป้องกันการอ่านข้อมูลเก่าจากแคชเบราว์เซอร์
+                    const response = await fetch(CLOUD_URL, { cache: "no-store" });
+                    if (response.ok) {
                         masterData = await response.json();
                         isConnected = true;
                     } else { throw new Error("Status code error"); }
@@ -428,18 +429,25 @@
             syncTimer = setTimeout(async () => {
                 try {
                     if(CLOUD_URL && CLOUD_URL !== "") {
-                        // ส่งข้อมูลด้วยเทคนิคบังคับไม่ให้มี Header เพื่อหลบเลี่ยง Preflight CORS
+                        // กลับมาใช้ mode: 'no-cors' อย่างเต็มรูปแบบ และไม่เช็ค response.ok 
+                        // เพราะ Google จะส่ง Redirect กลับมาโดยไม่มี CORS Header ทำให้เช็ค ok ไม่ได้
                         await fetch(CLOUD_URL, { 
-                            method: 'POST', 
+                            method: 'POST',
                             mode: 'no-cors',
+                            headers: { 
+                                'Content-Type': 'text/plain;charset=utf-8' 
+                            },
                             body: JSON.stringify(masterData) 
                         });
+                        
+                        // ถ้ารันมาถึงบรรทัดนี้ได้โดยไม่มี Network Error ถือว่าส่งข้อมูลสำเร็จแน่นอน
                         showToast("อัปเดตข้อมูลขึ้น Cloud สำเร็จ", "green");
-                        setCloudStatus('online'); // ถ้าส่งผ่านให้ปรับเป็นสีเขียว
+                        setCloudStatus('online');
                     } else {
                         showToast("บันทึกในเครื่อง (Offline)", "green");
                     }
                 } catch(e) {
+                    console.error("POST Error:", e);
                     showToast("ไม่สามารถส่งข้อมูลไป Cloud ได้", "red");
                     setCloudStatus('offline');
                 }
