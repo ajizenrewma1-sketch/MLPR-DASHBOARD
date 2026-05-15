@@ -460,83 +460,77 @@
         }
 
         function saveDailyData() {
-    let staffToUpdateSchedule = []; // เก็บรายชื่อเฉพาะคนที่ลงยอดในวันหยุด
+    let staffToUpdateSchedule = []; 
     let currentShift = document.getElementById('daily-shift-input').value.trim().toUpperCase();
 
-    // 1. ตรวจสอบว่ามีพนักงานคนไหนบ้างที่ลงยอดในวันหยุดตัวเอง
+    // --- ส่วนของข้อ 3: ตรวจสอบพนักงานที่ลงยอดในวันหยุด ---
     STAFF_MAP.forEach(staff => {
         let status = getScheduleVal(currentYear, currentMonth, currentDay, staff.id);
         let hasEnteredData = false;
-
         PRODUCT_MAP.forEach(prod => {
             const inputVal = document.getElementById(`input-${staff.id}-${prod.id}`).value;
-            // เช็คว่ามีการกรอกตัวเลข (ที่ไม่ใช่ช่องว่าง)
-            if (inputVal !== "") {
-                hasEnteredData = true;
-            }
+            if (inputVal !== "") hasEnteredData = true;
         });
-
-        // ถ้าเป็นวันหยุดแต่ดันมีข้อมูล ให้เก็บรายชื่อพนักงานคนนั้นไว้
-        if (isFullHoliday(status) && hasEnteredData) {
-            staffToUpdateSchedule.push(staff);
-        }
+        if (isFullHoliday(status) && hasEnteredData) staffToUpdateSchedule.push(staff);
     });
 
-    // --- ส่วนของข้อ 3: ระบบแจ้งเตือนวันหยุด ---
     if (staffToUpdateSchedule.length > 0) {
         let names = staffToUpdateSchedule.map(s => s.nickName).join(", ");
-        let message = `พนักงาน (${names}): เนื่องจากวันนี้เป็นวันหยุด มีการกดบันทึกยอด เพราะมีการสลับวันหยุดกับเพื่อนหรือไม่?\n\n(หากกดยืนยัน ระบบจะเปลี่ยนตารางงานวันนี้เป็นวันทำงานกะ ${currentShift || 'A'} ให้โดยอัตโนมัติ)`;
-        
+        let message = `พนักงาน (${names}): เนื่องจากวันนี้เป็นวันหยุด มีการกดบันทึกยอด เพราะมีการสลับวันหยุดกับเพื่อนหรือไม่?\n\n(หากกดยืนยัน ระบบจะเปลี่ยนตารางงานเป็นกะ ${currentShift || 'A'} ให้อัตโนมัติ)`;
         if (confirm(message)) {
             staffToUpdateSchedule.forEach(staff => {
-                // แก้ไขตารางงานเฉพาะคนที่กดยืนยันให้เป็นกะทำงาน
                 masterData[getScheduleKey(currentYear, currentMonth, currentDay, staff.id)] = currentShift || 'A';
             });
-        } else {
-            // ถ้าพนักงานกดยกเลิก (Cancel) จะไม่ทำการบันทึกข้อมูลใดๆ
-            return; 
-        }
+        } else { return; }
     }
 
-    // --- ส่วนของข้อ 4: การบันทึกยอด และเช็คการแก้ไขซ้ำ (ตัวแดง) ---
+    // --- ส่วนของข้อ 4: บันทึกยอดและดักจับการแก้ไขซ้ำ (ฝังสถานะลง Cloud) ---
     STAFF_MAP.forEach(staff => {
         PRODUCT_MAP.forEach(prod => {
             const inputEl = document.getElementById(`input-${staff.id}-${prod.id}`);
             const newValue = inputEl.value.trim();
             const key = getKey(staff.id, prod.id, currentDay);
+            const pendingKey = key + "_PENDING"; // สร้าง Key พิเศษสำหรับเก็บสถานะสีแดง
+            
             const oldValue = masterData[key];
 
-            // เช็คเงื่อนไขตัวแดง: ไม่ใช่ Sup + มีค่าเดิมอยู่แล้ว + ค่าใหม่ไม่เท่ากับค่าเดิม + เป็นช่อง ML, MN, RCF
-            if (!isSupervisorMode && oldValue !== undefined && oldValue !== "" && oldValue != newValue && newValue !== "") {
-                if (prod.id === 1 || prod.id === 2 || prod.id === 3) { // สมมติ 1=ML, 2=MN, 3=RCF
-                    pendingData[key] = true; // มาร์คไว้ว่าเป็นยอดที่ต้องรออนุมัติ (ตัวแดง)
+            // ตรวจสอบเงื่อนไขตัวแดง (ไม่ใช่ Sup + มีค่าเดิมอยู่แล้ว + ค่าใหม่ไม่เท่าค่าเดิม)
+            if (!isSupervisorMode && oldValue !== undefined && oldValue !== "" && oldValue !== 0 && oldValue != newValue && newValue !== "") {
+                // เช็คเฉพาะช่อง MLPR(1), MNPR(2), Reconfirm(3)
+                if (prod.id === 1 || prod.id === 2 || prod.id === 3) {
+                    masterData[pendingKey] = true; // บันทึกสถานะ "รออนุมัติ" ลงใน masterData เลย
                 }
-            } else if (isSupervisorMode) {
-                // ถ้าเป็น Sup แก้เอง หรือมากดยืนยัน ให้ล้างสถานะตัวแดงออก
-                delete pendingData[key];
+            } 
+            
+            // ถ้าเป็น Supervisor มาบันทึก ให้ล้างสถานะตัวแดงของช่องนั้นออก (ถือว่ายืนยันแล้ว)
+            if (isSupervisorMode) {
+                delete masterData[pendingKey];
             }
 
             masterData[key] = (newValue === "") ? 0 : parseInt(newValue);
         });
     });
 
-    // บันทึกกะงานหลักของวัน
+    // บันทึกกะงานหลัก
     masterData[getShiftKey(currentDay)] = currentShift;
 
+    // *** เพิ่มเติม: ถ้าเป็น Sup กดบันทึก ให้ล้างสถานะตัวแดงทั้งหมดของวันที่เลือก (เผื่อมีการแก้ไขหลายช่อง) ***
     if (isSupervisorMode) {
-            // ถ้ายูสเซอร์อยู่ในโหมดแก้ไข แล้วกดบันทึก ให้ถือว่า "อนุมัติ" ยอดทั้งหมด
-            // ล้างข้อมูลตัวแดงทิ้งทั้งหมด
-            pendingData = {}; 
-        }
+        STAFF_MAP.forEach(staff => {
+            PRODUCT_MAP.forEach(prod => {
+                delete masterData[getKey(staff.id, prod.id, currentDay) + "_PENDING"];
+            });
+        });
+    }
 
-    // ซิงค์ข้อมูลขึ้น Cloud และ Refresh หน้าจอ
+    // ซิงค์ขึ้น Cloud
     syncData(true); 
     renderSummaryTable(); 
     renderDateHeaders(); 
     renderInputTable(); 
     renderScheduleTable();
     
-    showToast("บันทึกข้อมูลและอัปเดตสถานะเรียบร้อยแล้ว", "green");
+    showToast("บันทึกข้อมูลเรียบร้อยแล้ว", "green");
 }
 
         function renderScheduleTable() {
@@ -590,85 +584,77 @@
             syncData(true); renderScheduleTable(); renderSummaryTable();
         }
 
-        function renderSummaryTable() {
-            const tbody = document.getElementById('summary-tbody');
-            tbody.innerHTML = '';
+        function function renderSummaryTable() {
+    const tbody = document.getElementById('summary-tbody');
+    tbody.innerHTML = '';
+    
+    STAFF_MAP.forEach(staff => {
+        PRODUCT_MAP.forEach((prod, pIdx) => {
+            const tr = document.createElement('tr');
+            if (pIdx === PRODUCT_MAP.length - 1) tr.className = "staff-divider";
             
-            STAFF_MAP.forEach(staff => {
-                PRODUCT_MAP.forEach((prod, pIdx) => {
-                    const tr = document.createElement('tr');
-                    if (pIdx === PRODUCT_MAP.length - 1) tr.className = "staff-divider";
-                    
+            if (pIdx === 0) {
+                const tdName = document.createElement('td'); 
+                tdName.rowSpan = PRODUCT_MAP.length; 
+                tdName.className = `sticky-col-1 ${staff.class} border-r-2`;
+                tdName.innerHTML = `<div class="p-2"><strong>${staff.fullName}</strong><br><span class="text-xs opacity-60">(${staff.nickName})</span></div>`; 
+                tr.appendChild(tdName);
+            }
+
+            tr.innerHTML += `
+                <td class="sticky-col-2 ${prod.label === 'QC' ? 'qc-text' : ''} bg-white/90">${prod.label}</td>
+                <td class="sticky-col-3 font-bold text-blue-600">${calculateSum(staff.id, prod.id) || '0'}</td>`;
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const schVal = getScheduleVal(currentYear, currentMonth, d, staff.id);
+                
+                // 1. กรณีเป็นวันหยุดเต็มวัน
+                if (isFullHoliday(schVal) && pIdx < PRODUCT_MAP.length - 1) {
                     if (pIdx === 0) {
-                        const tdName = document.createElement('td'); 
-                        tdName.rowSpan = PRODUCT_MAP.length; 
-                        tdName.className = `sticky-col-1 ${staff.class} border-r-2`;
-                        tdName.innerHTML = `<div class="p-2"><strong>${staff.fullName}</strong><br><span class="text-xs opacity-60">(${staff.nickName})</span></div>`; 
-                        tr.appendChild(tdName);
+                        const tdHol = document.createElement('td'); 
+                        tdHol.rowSpan = PRODUCT_MAP.length - 1; 
+                        let label = "";
+                        let cls = "";
+                        if (schVal === 'หยุด') { label = "วันหยุดประจำสัปดาห์"; cls = "holiday-weekly"; }
+                        else if (schVal === 'ลา') { label = "วันหยุดพักร้อน"; cls = "holiday-leave"; }
+                        else if (schVal.includes('สลับ')) { label = "สลับวันหยุดกับเพื่อน"; cls = "holiday-swap"; }
+
+                        tdHol.className = `day-cell ${cls} font-bold`; 
+                        tdHol.innerHTML = `<span class="vertical-text" style="font-size: 10px;">${label}</span>`;
+                        tr.appendChild(tdHol);
                     }
-
-                    tr.innerHTML += `
-                        <td class="sticky-col-2 ${prod.label === 'QC' ? 'qc-text' : ''} bg-white/90">${prod.label}</td>
-                        <td class="sticky-col-3 font-bold text-blue-600">${calculateSum(staff.id, prod.id) || '0'}</td>`;
-
-                    for (let d = 1; d <= daysInMonth; d++) {
-            const schVal = getScheduleVal(currentYear, currentMonth, d, staff.id);
-            
-            // 1. กรณีเป็นวันหยุดเต็มวัน (รวมเซลล์แนวตั้ง)
-            if (isFullHoliday(schVal) && pIdx < PRODUCT_MAP.length - 1) {
-                if (pIdx === 0) {
-                    const tdHol = document.createElement('td'); 
-                    tdHol.rowSpan = PRODUCT_MAP.length - 1; 
-                    
-                    // ปรับชื่อ Label ตามเงื่อนไข
-                    let label = "";
-                    let cls = "";
-                    if (schVal === 'หยุด') {
-                        label = "วันหยุดประจำสัปดาห์";
-                        cls = "holiday-weekly";
-                    } else if (schVal === 'ลา') {
-                        label = "วันหยุดพักร้อน";
-                        cls = "holiday-leave";
-                    } else if (schVal.includes('สลับ')) {
-                        label = "สลับวันหยุดกับเพื่อน";
-                        cls = "holiday-swap";
-                    }
-
-                    tdHol.className = `day-cell ${cls} font-bold`; 
-                    tdHol.innerHTML = `<span class="vertical-text" style="font-size: 10px;">${label}</span>`;
-                    tr.appendChild(tdHol);
+                    continue;
                 }
-                continue;
-            }
 
-            // 2. กรณีเป็นวันทำงานปกติ หรือ ลาพักร้อนแบบระบุช่วงเวลา (ไม่รวมเซลล์)
-            const tdDay = document.createElement('td'); 
-            tdDay.className = "day-cell p-0";
-            
-            // เช็คว่าเป็นลาแบบระบุช่วงเวลาหรือไม่ เพื่อใส่ลายน้ำ
-            if (schVal && schVal.includes('ช่วงเวลา')) {
-                tdDay.classList.add('watermark-cell');
-            }
+                // 2. กรณีเป็นวันทำงานปกติ หรือ ลาพักร้อนแบบระบุช่วงเวลา
+                const tdDay = document.createElement('td'); 
+                tdDay.className = "day-cell p-0";
+                if (schVal && schVal.includes('ช่วงเวลา')) tdDay.classList.add('watermark-cell');
 
-            const val = masterData[getKey(staff.id, prod.id, d)] || '';
-            
-            if (isSupervisorMode) {
-                const inputId = `summary-${staff.id}-${prod.id}-${d}`;
-                tdDay.innerHTML = `
-                    <input type="number" id="${inputId}" 
-                        class="w-full h-full text-center text-[11px] focus:outline-none border-none p-1"
-                        value="${val}"
-                        oninput="updateDataFromSummary(${staff.id}, ${prod.id}, ${d}, this.value)">`;
-            } else {
-                tdDay.textContent = val || '0';
-                tdDay.style.fontSize = "11px";
+                // --- ส่วนที่ปรับปรุง: เช็คสถานะสีแดง ---
+                const key = getKey(staff.id, prod.id, d);
+                const val = masterData[key] || '';
+                const isPending = masterData[key + "_PENDING"] === true; // เช็คสถานะแก้ซ้ำจาก Cloud
+                const textColorClass = isPending ? 'text-red-600 font-bold' : ''; 
+                // ----------------------------------
+
+                if (isSupervisorMode) {
+                    const inputId = `summary-${staff.id}-${prod.id}-${d}`;
+                    tdDay.innerHTML = `
+                        <input type="number" id="${inputId}" 
+                            class="w-full h-full text-center text-[11px] focus:outline-none border-none p-1 ${textColorClass}"
+                            value="${val}"
+                            oninput="updateDataFromSummary(${staff.id}, ${prod.id}, ${d}, this.value)">`;
+                } else {
+                    // แสดงเป็นตัวเลขสีแดงหากมีการแก้ไขซ้ำ
+                    tdDay.innerHTML = `<span class="${textColorClass}" style="font-size: 11px;">${val || '0'}</span>`;
+                }
+                tr.appendChild(tdDay);
             }
-            tr.appendChild(tdDay);
-        }
-                    tbody.appendChild(tr);
-                });
-            });
-        }
+            tbody.appendChild(tr);
+        });
+    });
+}
 
 // ฟังก์ชันช่วยบันทึกค่าที่พิมพ์ในตารางสรุป
 function updateDataFromSummary(staffId, prodId, day, value) {
@@ -852,21 +838,19 @@ document.addEventListener('input', function(e) {
         let prodId = parseInt(idParts[2]);
         let newValue = e.target.value;
         let key = getKey(staffId, prodId, currentDay);
+        
+        let pendingKey = key + "_PENDING"; // <--- สร้าง Key เพื่อฝังสถานะขึ้น Cloud
         let oldValue = masterData[key];
 
-        // เงื่อนไขตัวแดง: ถ้าไม่ใช่ Sup และมีการแก้ค่าเดิมในช่อง MLPR(1), MNPR(2), Reconfirm(3)
-        // (ตรวจสอบ prodId ให้ตรงกับลำดับใน PRODUCT_MAP ของคุณ)
-        if (!isSupervisorMode && oldValue !== undefined && oldValue !== "" && oldValue !== newValue) {
+        // เงื่อนไขตัวแดง: ไม่ใช่ Sup + มีค่าเดิมในระบบ (ไม่ใช่ช่องว่าง) + ค่าใหม่ไม่เท่ากับค่าเดิม
+        if (!isSupervisorMode && oldValue !== undefined && oldValue !== "" && oldValue != newValue) {
             if (prodId === 1 || prodId === 2 || prodId === 3) {
-                e.target.style.color = "red";
-                e.target.style.fontWeight = "bold";
-                return; // ไม่บันทึกทับค่าเดิมใน masterData จนกว่าจะอนุมัติ
+                masterData[pendingKey] = true; // บันทึกสถานะตัวแดงฝังลงในข้อมูลเลย
             }
         }
 
         masterData[key] = newValue;
-        e.target.style.color = ""; e.target.style.fontWeight = "";
-        syncData(false); // บันทึกแค่ในเครื่อง (LocalStorage) ไม่ซิงค์ Cloud
+        syncData(false); // จำค่าลงในเครื่องก่อน
     }
 });
 
