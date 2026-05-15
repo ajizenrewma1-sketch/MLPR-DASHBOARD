@@ -460,39 +460,84 @@
         }
 
         function saveDailyData() {
-            let hasHolidayInput = false;
-            let currentShift = document.getElementById('daily-shift-input').value.trim().toUpperCase();
+    let staffToUpdateSchedule = []; // เก็บรายชื่อเฉพาะคนที่ลงยอดในวันหยุด
+    let currentShift = document.getElementById('daily-shift-input').value.trim().toUpperCase();
 
-            STAFF_MAP.forEach(staff => {
-                let status = getScheduleVal(currentYear, currentMonth, currentDay, staff.id);
-                let hasData = false;
-                PRODUCT_MAP.forEach(prod => {
-                    if(prod.id !== 7 && document.getElementById(`input-${staff.id}-${prod.id}`).value !== "") hasData = true;
-                });
-                if (isFullHoliday(status) && hasData) hasHolidayInput = true;
+    // 1. ตรวจสอบว่ามีพนักงานคนไหนบ้างที่ลงยอดในวันหยุดตัวเอง
+    STAFF_MAP.forEach(staff => {
+        let status = getScheduleVal(currentYear, currentMonth, currentDay, staff.id);
+        let hasEnteredData = false;
+
+        PRODUCT_MAP.forEach(prod => {
+            const inputVal = document.getElementById(`input-${staff.id}-${prod.id}`).value;
+            // เช็คว่ามีการกรอกตัวเลข (ที่ไม่ใช่ช่องว่าง)
+            if (inputVal !== "") {
+                hasEnteredData = true;
+            }
+        });
+
+        // ถ้าเป็นวันหยุดแต่ดันมีข้อมูล ให้เก็บรายชื่อพนักงานคนนั้นไว้
+        if (isFullHoliday(status) && hasEnteredData) {
+            staffToUpdateSchedule.push(staff);
+        }
+    });
+
+    // --- ส่วนของข้อ 3: ระบบแจ้งเตือนวันหยุด ---
+    if (staffToUpdateSchedule.length > 0) {
+        let names = staffToUpdateSchedule.map(s => s.nickName).join(", ");
+        let message = `พนักงาน (${names}): เนื่องจากวันนี้เป็นวันหยุด มีการกดบันทึกยอด เพราะมีการสลับวันหยุดกับเพื่อนหรือไม่?\n\n(หากกดยืนยัน ระบบจะเปลี่ยนตารางงานวันนี้เป็นวันทำงานกะ ${currentShift || 'A'} ให้โดยอัตโนมัติ)`;
+        
+        if (confirm(message)) {
+            staffToUpdateSchedule.forEach(staff => {
+                // แก้ไขตารางงานเฉพาะคนที่กดยืนยันให้เป็นกะทำงาน
+                masterData[getScheduleKey(currentYear, currentMonth, currentDay, staff.id)] = currentShift || 'A';
             });
+        } else {
+            // ถ้าพนักงานกดยกเลิก (Cancel) จะไม่ทำการบันทึกข้อมูลใดๆ
+            return; 
+        }
+    }
 
-            if (hasHolidayInput) {
-                if (confirm("เนื่องจากเป็นวันหยุด มีการกดบันทึกยอด เพราะมีการการสลับวันหยุดกับเพื่อนหรือไม่?\n(หากตกลง ระบบจะเปลี่ยนสถานะในตารางงานเป็นกะงานให้คุณอัตโนมัติ)")) {
-                    STAFF_MAP.forEach(staff => {
-                        let status = getScheduleVal(currentYear, currentMonth, currentDay, staff.id);
-                        if (isFullHoliday(status)) {
-                            masterData[getScheduleKey(currentYear, currentMonth, currentDay, staff.id)] = currentShift || 'A';
-                        }
-                    });
-                } else { return; }
+    // --- ส่วนของข้อ 4: การบันทึกยอด และเช็คการแก้ไขซ้ำ (ตัวแดง) ---
+    STAFF_MAP.forEach(staff => {
+        PRODUCT_MAP.forEach(prod => {
+            const inputEl = document.getElementById(`input-${staff.id}-${prod.id}`);
+            const newValue = inputEl.value.trim();
+            const key = getKey(staff.id, prod.id, currentDay);
+            const oldValue = masterData[key];
+
+            // เช็คเงื่อนไขตัวแดง: ไม่ใช่ Sup + มีค่าเดิมอยู่แล้ว + ค่าใหม่ไม่เท่ากับค่าเดิม + เป็นช่อง ML, MN, RCF
+            if (!isSupervisorMode && oldValue !== undefined && oldValue !== "" && oldValue != newValue && newValue !== "") {
+                if (prod.id === 1 || prod.id === 2 || prod.id === 3) { // สมมติ 1=ML, 2=MN, 3=RCF
+                    pendingData[key] = true; // มาร์คไว้ว่าเป็นยอดที่ต้องรออนุมัติ (ตัวแดง)
+                }
+            } else if (isSupervisorMode) {
+                // ถ้าเป็น Sup แก้เอง หรือมากดยืนยัน ให้ล้างสถานะตัวแดงออก
+                delete pendingData[key];
             }
 
-            STAFF_MAP.forEach(staff => {
-                PRODUCT_MAP.forEach(prod => {
-                    if (prod.id === 7) return;
-                    const val = document.getElementById(`input-${staff.id}-${prod.id}`).value.trim();
-                    masterData[getKey(staff.id, prod.id, currentDay)] = (val === "") ? 0 : parseInt(val);
-                });
-            });
-            masterData[getShiftKey(currentDay)] = currentShift;
-            syncData(true); renderSummaryTable(); renderDateHeaders(); renderInputTable(); renderScheduleTable();
+            masterData[key] = (newValue === "") ? 0 : parseInt(newValue);
+        });
+    });
+
+    // บันทึกกะงานหลักของวัน
+    masterData[getShiftKey(currentDay)] = currentShift;
+
+    if (isSupervisorMode) {
+            // ถ้ายูสเซอร์อยู่ในโหมดแก้ไข แล้วกดบันทึก ให้ถือว่า "อนุมัติ" ยอดทั้งหมด
+            // ล้างข้อมูลตัวแดงทิ้งทั้งหมด
+            pendingData = {}; 
         }
+
+    // ซิงค์ข้อมูลขึ้น Cloud และ Refresh หน้าจอ
+    syncData(true); 
+    renderSummaryTable(); 
+    renderDateHeaders(); 
+    renderInputTable(); 
+    renderScheduleTable();
+    
+    showToast("บันทึกข้อมูลและอัปเดตสถานะเรียบร้อยแล้ว", "green");
+}
 
         function renderScheduleTable() {
             const thead = document.getElementById('schedule-thead');
@@ -689,19 +734,41 @@ function updateDataFromSummary(staffId, prodId, day, value) {
         }
 
         function renderInputTable() {
-            const tbody = document.getElementById('input-tbody'); tbody.innerHTML = '';
-            STAFF_MAP.forEach(staff => {
-                const tr = document.createElement('tr'); tr.className = staff.class;
-                tr.innerHTML = `<td class="col-name font-black">${staff.nickName}</td>`;
+            const tbody = document.getElementById('input-tbody');
+            tbody.innerHTML = '';
+            
+            STAFF_MAP.forEach((staff, index) => {
+                let tr = document.createElement('tr');
+                if(index % 2 !== 0) tr.classList.add('bg-slate-50');
+                
+                tr.innerHTML = `<td class="py-2 px-1 border-b border-r border-slate-200 sticky left-0 z-10 ${staff.class}">
+                                    <div class="font-bold whitespace-nowrap text-xs pl-1">${staff.nickName}</div>
+                                </td>`;
+                
                 PRODUCT_MAP.forEach(prod => {
-                    const val = masterData[getKey(staff.id, prod.id, currentDay)];
+                    let td = document.createElement('td');
+                    td.className = "p-0 border-b border-r border-slate-200 relative";
                     
-                    // --- ส่วนที่เพิ่มเข้ามาเช็ค QC ---
-                    // เช็คว่าช่องนี้คือ QC หรือไม่ (อ้างอิงจาก prod.id หรือชื่อ)
-                    const isQC = (prod.name === 'QC' || prod.id === 'QC'); // ปรับให้ตรงกับ id ใน PRODUCT_MAP
-                    const readonlyAttr = (isQC && !isSupervisorMode) ? 'readonly class="input-field bg-gray-100 cursor-not-allowed"' : 'class="input-field"';
-                    // เพิ่ม readonlyAttr เข้าไปใน input
-                    tr.innerHTML += `<td><input type="number" ${readonlyAttr} onkeydown="handleArrowKeys(event, ${staff.id}, ${prod.id})" id="input-${staff.id}-${prod.id}" value="${val || ''}" placeholder="-"></td>`;
+                    let key = getKey(staff.id, prod.id, currentDay);
+                    let val = masterData[key] || '';
+                    
+                    // --- เพิ่มเงื่อนไขล็อคช่อง QC ตรงนี้ ---
+                    const isQC = (prod.label === 'QC'); // ตรวจสอบว่าเป็นคอลัมน์ QC หรือไม่
+                    const isLocked = isQC && !isSupervisorMode; // ล็อคถ้าเป็น QC และไม่ใช่โหมด Sup
+                    
+                    // กำหนดสีพื้นหลังให้เป็นสีเทาถ้าถูกล็อค
+                    const bgClass = isLocked ? 'bg-gray-200 cursor-not-allowed' : 'bg-transparent';
+                    // ใส่ readonly ถ้าถูกล็อค
+                    const readOnlyAttr = isLocked ? 'readonly' : '';
+
+                    td.innerHTML = `
+                        <input type="number" id="input-${staff.id}-${prod.id}" 
+                            class="w-full h-full min-h-[35px] text-center text-sm focus:outline-none focus:bg-blue-50 transition-colors ${bgClass}"
+                            value="${val}"
+                            ${readOnlyAttr}
+                        >
+                    `;
+                    tr.appendChild(td);
                 });
                 tbody.appendChild(tr);
             });
