@@ -445,17 +445,25 @@
                     const schVal = getScheduleVal(currentYear, currentMonth, d, staff.id);
                     const td = document.createElement('td');
                     td.className = `schedule-cell border-r border-slate-100 font-bold transition-all`;
+                    
+                    // แก้ไข: ในโหมดแก้ไข ให้คลิกเพื่อเปลี่ยนสถานะได้เท่านั้น ห้ามพิมพ์ (ลบ contentEditable ออก)
                     if (isSupervisorMode) {
-                        td.contentEditable = "true"; td.className += " editable-cell";
-                        td.onblur = (e) => {
-                            masterData[getScheduleKey(currentYear, currentMonth, d, staff.id)] = e.target.textContent.trim();
-                            syncData(false); renderSummaryTable();
+                        td.classList.add("cursor-pointer", "hover:bg-blue-50");
+                        td.onclick = () => {
+                            const key = getScheduleKey(currentYear, currentMonth, d, staff.id);
+                            // ตัวอย่าง Logic: สลับสถานะ (ถ้าเป็นค่าว่างให้เป็น 'หยุด' ถ้าเป็น 'หยุด' ให้เป็นค่าว่าง)
+                            // หรือใช้ Logic เดิมที่คุณมีสำหรับการเปลี่ยนสถานะวันหยุด
+                            masterData[key] = (masterData[key] === 'OFF' || masterData[key] === 'หยุด') ? '' : 'OFF'; 
+                            syncData(false); // บันทึกแค่ในเครื่องก่อน
+                            renderScheduleTable();
+                            renderSummaryTable();
                         };
-                        td.onpaste = (e) => handleSchedulePaste(e, d, staff.id);
                     }
-                    if (isFullHoliday(schVal)) td.classList.add('text-slate-400');
+
+                    if (isFullHoliday(schVal)) td.classList.add('text-slate-400', 'bg-slate-50');
                     else if (schVal.includes('ลา')) td.classList.add('text-green-600');
                     else td.classList.add('text-blue-600');
+                    
                     td.textContent = schVal;
                     tr.appendChild(td);
                 }
@@ -680,50 +688,49 @@ document.addEventListener('input', function(e) {
     }
 });
 
-// --- 2. จัดการการวางข้อมูลหลายช่อง (Paste) สำหรับโหมด Sup ---
-document.addEventListener('paste', function(e) {
-    if (!isSupervisorMode) return;
-    
-    // ตรวจสอบว่าวางใน input (ตารางรายวัน) หรือ td (ตารางงานทีม)
-    const isInput = e.target.tagName === 'INPUT' && e.target.id.startsWith('input-');
-    const isTable = e.target.tagName === 'TD' && e.target.classList.contains('editable-cell');
-    
-    if (isInput || isTable) {
-        const text = (e.clipboardData || window.clipboardData).getData('text');
-        if (text.includes('\t') || text.includes('\n')) {
-            e.preventDefault();
-            const rows = text.split(/\r?\n/);
-            
-            // แยก ID เพื่อหาจุดเริ่มต้น
-            let startRow, startCol, idPrefix;
-            if (isInput) {
-                const parts = e.target.id.split('-');
-                startRow = parseInt(parts[1]); startCol = parseInt(parts[2]);
-                idPrefix = 'input-';
-            }
+// ฟังก์ชันจัดการการวางข้อมูล (Paste)
+        document.addEventListener('paste', function(e) {
+            if (!isSupervisorMode) return; // ทำงานเฉพาะโหมดแก้ไข
 
-            rows.forEach((row, rIdx) => {
-                if (!row.trim()) return;
-                const cols = row.split('\t');
-                cols.forEach((value, cIdx) => {
-                    let target;
-                    if (isInput) {
-                        target = document.getElementById(`${idPrefix}${startRow + rIdx}-${startCol + cIdx}`);
-                        if (target && !target.readOnly) {
-                            const val = value.trim().replace(/,/g, '');
-                            target.value = val;
-                            masterData[getKey(startRow + rIdx, startCol + cIdx, currentDay)] = val;
-                        }
-                    }
-                    // สำหรับตารางงานทีม (ถ้าต้องการให้วางกระจายได้ด้วย)
-                    // ... เพิ่ม logic สำหรับ schedule table ตามความเหมาะสม ...
-                });
-            });
-            syncData(false); // บันทึกในเครื่อง
-            showToast("วางข้อมูลหลายช่องสำเร็จ (กดบันทึกเพื่อซิงค์)", "blue");
-        }
-    }
-});
+            const target = e.target;
+            // ตรวจสอบว่าวางในช่อง Input ของตารางบันทึกยอดหรือไม่
+            if (target.tagName === 'INPUT' && target.id.startsWith('input-')) {
+                const clipboardData = e.clipboardData || window.clipboardData;
+                const pastedText = clipboardData.getData('text');
+
+                // ถ้ามีการคัดลอกหลายช่อง (มี Tab หรือขึ้นบรรทัดใหม่)
+                if (pastedText.includes('\t') || pastedText.includes('\n')) {
+                    e.preventDefault(); // หยุดการวางแบบปกติของ Browser
+
+                    const rows = pastedText.split(/\r?\n/);
+                    // ดึง Staff ID และ Product ID เริ่มต้นจาก id ของ input (เช่น input-1-2)
+                    const parts = target.id.split('-');
+                    const startStaff = parseInt(parts[1]);
+                    const startProd = parseInt(parts[2]);
+
+                    rows.forEach((row, rIdx) => {
+                        if (row.trim() === '') return;
+                        const cols = row.split('\t');
+                        cols.forEach((value, cIdx) => {
+                            const currentStaffId = startStaff + rIdx;
+                            const currentProdId = startProd + cIdx;
+                            
+                            // หาช่องเป้าหมาย
+                            const targetInput = document.getElementById(`input-${currentStaffId}-${currentProdId}`);
+                            
+                            if (targetInput && !targetInput.readOnly) {
+                                const cleanValue = value.trim().replace(/,/g, ''); // ล้างคอมม่า
+                                targetInput.value = cleanValue;
+                                // อัปเดตข้อมูลลง masterData
+                                masterData[getKey(currentStaffId, currentProdId, currentDay)] = cleanValue;
+                            }
+                        });
+                    });
+                    syncData(false); // บันทึกในเครื่อง
+                    showToast("วางข้อมูลกระจายช่องสำเร็จ", "blue");
+                }
+            }
+        });
     </script>
 </body>
 </html>
