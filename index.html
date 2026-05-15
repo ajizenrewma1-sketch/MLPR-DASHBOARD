@@ -331,7 +331,7 @@
     </div>
 
     <script>
-        const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwBrabGQXuYZ9-LYaLof2hPsnrSnael7Cc_4d5n64ZyDoQ4M2BsunG1fcN6TVRqM4uZPQ/exec"; // ⚠️ วาง URL ตัวจริงที่ได้จาก Google Apps Script แทนที่ข้อความนี้ครับ
+        const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwBrabGQXuYZ9-LYaLof2hPsnrSnael7Cc_4d5n64ZyDoQ4M2BsunG1fcN6TVRqM4uZPQ/exec";
 
         const STAFF_MAP = [
             { id: 0, fullName: "นายพงศกร วัดเซ่ง", nickName: "ปอร์", class: "row-por" },
@@ -458,7 +458,6 @@
                 } else {
                     masterData = JSON.parse(localStorage.getItem('mlpr_v5_final')) || {};
                 }
-                localStorage.setItem('mlpr_v5_final', JSON.stringify(masterData));
             } catch(e) {
                 masterData = JSON.parse(localStorage.getItem('mlpr_v5_final')) || {};
             }
@@ -475,7 +474,14 @@
             syncTimer = setTimeout(async () => {
                 try {
                     if(CLOUD_URL !== "วาง URL ของเว็บแอปที่นี่") {
-                        await fetch(CLOUD_URL, { method: 'POST', body: JSON.stringify(masterData) });
+                        // ส่งข้อมูลแบบ text/plain เพื่อหลีกเลี่ยงการถูก Block CORS จาก Google Apps Script
+                        await fetch(CLOUD_URL, { 
+                            method: 'POST', 
+                            headers: {
+                                'Content-Type': 'text/plain;charset=utf-8',
+                            },
+                            body: JSON.stringify(masterData) 
+                        });
                         showToast("อัปเดตข้อมูลขึ้น Cloud สำเร็จ", "green");
                     } else {
                         showToast("บันทึกในเครื่อง (Offline)", "green");
