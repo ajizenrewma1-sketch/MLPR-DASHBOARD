@@ -297,6 +297,7 @@
         ];
 
         let masterData = {};
+	let pendingData = {};
         let syncTimer;
         const today = new Date();
         let currentYear = today.getFullYear();
@@ -576,8 +577,13 @@
                 tr.innerHTML = `<td class="col-name font-black">${staff.nickName}</td>`;
                 PRODUCT_MAP.forEach(prod => {
                     const val = masterData[getKey(staff.id, prod.id, currentDay)];
-                    // เพิ่ม onkeydown เพื่อเรียกใช้ฟังก์ชันเลื่อนช่อง
-                    tr.innerHTML += `<td><input type="number" onkeydown="handleArrowKeys(event, ${staff.id}, ${prod.id})" class="input-field ${prod.class}" id="input-${staff.id}-${prod.id}" value="${val || ''}" placeholder="-"></td>`;
+                    
+                    // --- ส่วนที่เพิ่มเข้ามาเช็ค QC ---
+                    // เช็คว่าช่องนี้คือ QC หรือไม่ (อ้างอิงจาก prod.id หรือชื่อ)
+                    const isQC = (prod.name === 'QC' || prod.id === 'QC'); // ปรับให้ตรงกับ id ใน PRODUCT_MAP
+                    const readonlyAttr = (isQC && !isSupervisorMode) ? 'readonly class="input-field bg-gray-100 cursor-not-allowed"' : 'class="input-field"';
+                    // เพิ่ม readonlyAttr เข้าไปใน input
+                    tr.innerHTML += `<td><input type="number" ${readonlyAttr} onkeydown="handleArrowKeys(event, ${staff.id}, ${prod.id})" id="input-${staff.id}-${prod.id}" value="${val || ''}" placeholder="-"></td>`;
                 });
                 tbody.appendChild(tr);
             });
@@ -643,6 +649,48 @@
                 nextInput.select(); // ไฮไลท์ข้อความในช่องถัดไปอัตโนมัติ เพื่อให้พิมพ์ทับได้ทันที
             }
         }
+document.addEventListener('input', function(e) {
+    // เช็คว่าช่องที่พิมพ์เป็น input แบบ number ในตารางกรอกข้อมูลหรือไม่
+    if (e.target.tagName === 'INPUT' && e.target.type === 'number' && e.target.id.startsWith('input-')) {
+        
+        // ดึง ID ของพนักงาน (staffId) และ งาน (prodId) ออกมาจาก ID ของช่อง
+        let idParts = e.target.id.split('-');
+        let staffId = parseInt(idParts[1]);
+        let prodId = parseInt(idParts[2]);
+        let newValue = e.target.value;
+        
+        let key = getKey(staffId, prodId, currentDay);
+        let oldValue = masterData[key];
+
+        // ตรวจสอบเงื่อนไขว่าเป็นการ "แก้ไขข้อมูลเดิม" ของ 3 ช่องที่กำหนด และ "ไม่ใช่" โหมด Sup หรือไม่
+        if (!isSupervisorMode && oldValue !== undefined && oldValue !== "") {
+            // เช็คว่าเป็นช่อง MLPR (id=1), MNPR (id=2), Reconfirm (id=3) หรือไม่ 
+            // (คุณอาจต้องปรับตัวเลข id 1, 2, 3 ให้ตรงกับ PRODUCT_MAP ของคุณ)
+            if (prodId === 1 || prodId === 2 || prodId === 3) { 
+                
+                // เก็บค่าใหม่ไว้ในกล่องรออนุมัติ
+                pendingData[key] = newValue;
+                
+                // เปลี่ยนสีตัวอักษรในช่องเป็นสีแดง
+                e.target.style.color = "red";
+                e.target.style.fontWeight = "bold";
+                
+                // เปลี่ยนกลับค่าในช่องให้แสดงเลขใหม่ที่พิมพ์ (ป้องกันไม่ให้ไปทับ masterData)
+                e.target.value = newValue; 
+                
+                return; // ออกจากการทำงาน ไม่ต้องเซฟทับ masterData ทันที
+            }
+        }
+
+        // กรณีปกติ (กรอกครั้งแรก, ไม่ใช่ 3 ช่องนั้น, หรือเป็นโหมด Sup)
+        masterData[key] = newValue;
+        e.target.style.color = ""; // คืนค่าสีเดิม
+        e.target.style.fontWeight = "";
+        
+        // ถ้าต้องการให้บันทึกอัตโนมัติให้ใส่ syncData(true); แต่ถ้าใช้ปุ่มกดตามข้อ 1 ให้ใส่ (false)
+        syncData(false); 
+    }
+});
     </script>
 </body>
 </html>
