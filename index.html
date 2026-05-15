@@ -576,7 +576,8 @@
                 tr.innerHTML = `<td class="col-name font-black">${staff.nickName}</td>`;
                 PRODUCT_MAP.forEach(prod => {
                     const val = masterData[getKey(staff.id, prod.id, currentDay)];
-                    tr.innerHTML += `<td><input type="number" class="input-field ${prod.class}" id="input-${staff.id}-${prod.id}" value="${val || ''}" placeholder="-"></td>`;
+                    // เพิ่ม onkeydown เพื่อเรียกใช้ฟังก์ชันเลื่อนช่อง
+                    tr.innerHTML += `<td><input type="number" onkeydown="handleArrowKeys(event, ${staff.id}, ${prod.id})" class="input-field ${prod.class}" id="input-${staff.id}-${prod.id}" value="${val || ''}" placeholder="-"></td>`;
                 });
                 tbody.appendChild(tr);
             });
@@ -599,6 +600,30 @@
         function showToast(msg, color) { const t = document.getElementById('toast'); document.getElementById('toast-msg').textContent = msg; t.classList.replace('toast-hide', 'toast-show'); setTimeout(() => t.classList.replace('toast-show', 'toast-hide'), 3000); }
 
         window.onload = function() { setupDatePicker(); fetchFromCloud(); };
+// ฟังก์ชันสำหรับจัดการการกดปุ่มลูกศรเพื่อเลื่อนช่องกรอกข้อมูล
+        function handleArrowKeys(e, staffId, prodId) {
+            let nextStaffId = staffId;
+            let nextProdId = prodId;
+
+            if (e.key === 'ArrowUp') {
+                nextStaffId--;
+            } else if (e.key === 'ArrowDown') {
+                nextStaffId++;
+            } else if (e.key === 'ArrowLeft') {
+                nextProdId--;
+            } else if (e.key === 'ArrowRight') {
+                nextProdId++;
+            } else {
+                return; // ถ้าไม่ใช่ปุ่มลูกศรให้ทำงานตามปกติ
+            }
+
+            const nextInput = document.getElementById(`input-${nextStaffId}-${nextProdId}`);
+            if (nextInput) {
+                e.preventDefault(); // ป้องกันการเพิ่ม/ลดตัวเลข หรือการเลื่อนหน้าจอ
+                nextInput.focus();
+                nextInput.select(); // ไฮไลท์ข้อความในช่องถัดไปอัตโนมัติ เพื่อให้พิมพ์ทับได้ทันที
+            }
+        }
     </script>
 </body>
 </html>
