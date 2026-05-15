@@ -264,15 +264,13 @@
     </div>
 
     <!-- Auth Modal -->
-    <div id="auth-modal" class="fixed inset-0 bg-slate-900/30 backdrop-blur-sm hidden items-center justify-center z-[100] transition-opacity">
-        <div class="bg-white/95 backdrop-blur-xl p-8 rounded-[2rem] shadow-2xl w-80 border border-white/60 transform scale-95 transition-transform duration-300" id="auth-modal-content">
-            <h3 class="text-lg font-bold text-slate-800 mb-1 text-center">ยืนยันสิทธิ์หัวหน้างาน</h3>
-            <input type="password" id="admin-pin-code" ...>
-
-<input type="password" id="x-auth-key" name="x-auth-key" autocomplete="one-time-code" class="border p-2 rounded w-full text-center" placeholder="กรอกรหัสผ่านเพื่อแก้ไข">
-            <div class="flex gap-2 mt-6">
-                <button onclick="closeAuthModal()" class="flex-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-500 font-bold py-2.5 rounded-xl transition-colors text-xs shadow-sm">ยกเลิก</button>
-                <button onclick="verifyAuth()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white shadow-md font-bold py-2.5 rounded-xl transition-all text-xs btn-pop">ยืนยัน</button>
+    <div id="auth-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-2xl shadow-xl w-80 text-center">
+            <h3 class="text-xl font-bold mb-4 text-slate-800">ยืนยันสิทธิ์</h3>
+            <input type="password" id="x-auth-key" name="x-auth-key" autocomplete="one-time-code" class="border-2 border-slate-200 p-2 rounded-xl w-full text-center mb-4 focus:outline-none focus:border-blue-500" placeholder="กรอกรหัสผ่านเพื่อแก้ไข">
+            <div class="flex justify-center gap-2">
+                <button onclick="closeAuthModal()" class="px-4 py-2 bg-gray-200 text-slate-700 rounded-lg hover:bg-gray-300 transition">ยกเลิก</button>
+                <button onclick="verifyAuth()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md">ตกลง</button>
             </div>
         </div>
     </div>
@@ -594,19 +592,21 @@
         function showAuthModal() { document.getElementById('auth-modal').classList.replace('hidden', 'flex'); }
         function closeAuthModal() { document.getElementById('auth-modal').classList.replace('flex', 'hidden'); }
         async function verifyAuth() {
-            // เปลี่ยนจาก admin-pin-code เป็น x-auth-key ตามที่แก้ใน HTML
             const pinInput = document.getElementById('x-auth-key'); 
-            const pinValue = pinInput.value;
+            // ดึงค่าและตัดช่องว่างหน้า/หลังเผื่อเผลอกดสเปซบาร์
+            const pinValue = pinInput.value.trim(); 
             
-            pinInput.value = ''; // ล้างค่าทันทีที่กด
+            // ล้างค่าในช่องทันที
+            pinInput.value = ''; 
 
             try {
+                // แปลงรหัสเป็น Hash SHA-256
                 const msgBuffer = new TextEncoder().encode(pinValue);
                 const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
                 const hashArray = Array.from(new Uint8Array(hashBuffer));
                 const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-                // ตรวจสอบรหัสผ่าน (SAdee11436)
+                // เทียบกับรหัส SAdee11436
                 if (hashHex === '9a12bc2070e28157771de99252a13cc7ab5366c3a64d1fcd8a2721f421f5fb3d') {
                     isSupervisorMode = true; 
                     closeAuthModal(); 
@@ -614,9 +614,10 @@
                     document.getElementById('holiday-management-panel').classList.remove('hidden'); 
                     renderScheduleTable();
                 } else {
-                    alert("รหัสไม่ถูกต้อง");
+                    alert("รหัสไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง");
                 }
             } catch (error) {
+                console.error(error);
                 alert("ระบบตรวจสอบรหัสขัดข้อง");
             }
         }
