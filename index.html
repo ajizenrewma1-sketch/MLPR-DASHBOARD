@@ -449,7 +449,7 @@
                         td.contentEditable = "true"; td.className += " editable-cell";
                         td.onblur = (e) => {
                             masterData[getScheduleKey(currentYear, currentMonth, d, staff.id)] = e.target.textContent.trim();
-                            syncData(true); renderSummaryTable();
+                            syncData(false); renderSummaryTable();
                         };
                         td.onpaste = (e) => handleSchedulePaste(e, d, staff.id);
                     }
@@ -625,6 +625,11 @@
         function showToast(msg, color) { const t = document.getElementById('toast'); document.getElementById('toast-msg').textContent = msg; t.classList.replace('toast-hide', 'toast-show'); setTimeout(() => t.classList.replace('toast-show', 'toast-hide'), 3000); }
 
         window.onload = function() { setupDatePicker(); fetchFromCloud(); };
+function saveDailyData() {
+    // สั่งให้ส่งข้อมูลจากเครื่องขึ้น Cloud ทันที
+    syncData(true); 
+    showToast("บันทึกข้อมูลลง Cloud สำเร็จ", "green");
+}
 // ฟังก์ชันสำหรับจัดการการกดปุ่มลูกศรเพื่อเลื่อนช่องกรอกข้อมูล
         function handleArrowKeys(e, staffId, prodId) {
             let nextStaffId = staffId;
@@ -649,46 +654,74 @@
                 nextInput.select(); // ไฮไลท์ข้อความในช่องถัดไปอัตโนมัติ เพื่อให้พิมพ์ทับได้ทันที
             }
         }
+// --- 1. จัดการการพิมพ์ยอดรายวัน (Section 1) ---
 document.addEventListener('input', function(e) {
-    // เช็คว่าช่องที่พิมพ์เป็น input แบบ number ในตารางกรอกข้อมูลหรือไม่
-    if (e.target.tagName === 'INPUT' && e.target.type === 'number' && e.target.id.startsWith('input-')) {
-        
-        // ดึง ID ของพนักงาน (staffId) และ งาน (prodId) ออกมาจาก ID ของช่อง
+    if (e.target.tagName === 'INPUT' && e.target.id.startsWith('input-')) {
         let idParts = e.target.id.split('-');
         let staffId = parseInt(idParts[1]);
         let prodId = parseInt(idParts[2]);
         let newValue = e.target.value;
-        
         let key = getKey(staffId, prodId, currentDay);
         let oldValue = masterData[key];
 
-        // ตรวจสอบเงื่อนไขว่าเป็นการ "แก้ไขข้อมูลเดิม" ของ 3 ช่องที่กำหนด และ "ไม่ใช่" โหมด Sup หรือไม่
-        if (!isSupervisorMode && oldValue !== undefined && oldValue !== "") {
-            // เช็คว่าเป็นช่อง MLPR (id=1), MNPR (id=2), Reconfirm (id=3) หรือไม่ 
-            // (คุณอาจต้องปรับตัวเลข id 1, 2, 3 ให้ตรงกับ PRODUCT_MAP ของคุณ)
-            if (prodId === 1 || prodId === 2 || prodId === 3) { 
-                
-                // เก็บค่าใหม่ไว้ในกล่องรออนุมัติ
-                pendingData[key] = newValue;
-                
-                // เปลี่ยนสีตัวอักษรในช่องเป็นสีแดง
+        // เงื่อนไขตัวแดง: ถ้าไม่ใช่ Sup และมีการแก้ค่าเดิมในช่อง MLPR(1), MNPR(2), Reconfirm(3)
+        // (ตรวจสอบ prodId ให้ตรงกับลำดับใน PRODUCT_MAP ของคุณ)
+        if (!isSupervisorMode && oldValue !== undefined && oldValue !== "" && oldValue !== newValue) {
+            if (prodId === 1 || prodId === 2 || prodId === 3) {
                 e.target.style.color = "red";
                 e.target.style.fontWeight = "bold";
-                
-                // เปลี่ยนกลับค่าในช่องให้แสดงเลขใหม่ที่พิมพ์ (ป้องกันไม่ให้ไปทับ masterData)
-                e.target.value = newValue; 
-                
-                return; // ออกจากการทำงาน ไม่ต้องเซฟทับ masterData ทันที
+                return; // ไม่บันทึกทับค่าเดิมใน masterData จนกว่าจะอนุมัติ
             }
         }
 
-        // กรณีปกติ (กรอกครั้งแรก, ไม่ใช่ 3 ช่องนั้น, หรือเป็นโหมด Sup)
         masterData[key] = newValue;
-        e.target.style.color = ""; // คืนค่าสีเดิม
-        e.target.style.fontWeight = "";
-        
-        // ถ้าต้องการให้บันทึกอัตโนมัติให้ใส่ syncData(true); แต่ถ้าใช้ปุ่มกดตามข้อ 1 ให้ใส่ (false)
-        syncData(false); 
+        e.target.style.color = ""; e.target.style.fontWeight = "";
+        syncData(false); // บันทึกแค่ในเครื่อง (LocalStorage) ไม่ซิงค์ Cloud
+    }
+});
+
+// --- 2. จัดการการวางข้อมูลหลายช่อง (Paste) สำหรับโหมด Sup ---
+document.addEventListener('paste', function(e) {
+    if (!isSupervisorMode) return;
+    
+    // ตรวจสอบว่าวางใน input (ตารางรายวัน) หรือ td (ตารางงานทีม)
+    const isInput = e.target.tagName === 'INPUT' && e.target.id.startsWith('input-');
+    const isTable = e.target.tagName === 'TD' && e.target.classList.contains('editable-cell');
+    
+    if (isInput || isTable) {
+        const text = (e.clipboardData || window.clipboardData).getData('text');
+        if (text.includes('\t') || text.includes('\n')) {
+            e.preventDefault();
+            const rows = text.split(/\r?\n/);
+            
+            // แยก ID เพื่อหาจุดเริ่มต้น
+            let startRow, startCol, idPrefix;
+            if (isInput) {
+                const parts = e.target.id.split('-');
+                startRow = parseInt(parts[1]); startCol = parseInt(parts[2]);
+                idPrefix = 'input-';
+            }
+
+            rows.forEach((row, rIdx) => {
+                if (!row.trim()) return;
+                const cols = row.split('\t');
+                cols.forEach((value, cIdx) => {
+                    let target;
+                    if (isInput) {
+                        target = document.getElementById(`${idPrefix}${startRow + rIdx}-${startCol + cIdx}`);
+                        if (target && !target.readOnly) {
+                            const val = value.trim().replace(/,/g, '');
+                            target.value = val;
+                            masterData[getKey(startRow + rIdx, startCol + cIdx, currentDay)] = val;
+                        }
+                    }
+                    // สำหรับตารางงานทีม (ถ้าต้องการให้วางกระจายได้ด้วย)
+                    // ... เพิ่ม logic สำหรับ schedule table ตามความเหมาะสม ...
+                });
+            });
+            syncData(false); // บันทึกในเครื่อง
+            showToast("วางข้อมูลหลายช่องสำเร็จ (กดบันทึกเพื่อซิงค์)", "blue");
+        }
     }
 });
     </script>
