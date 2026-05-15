@@ -267,7 +267,7 @@
     <div id="auth-modal" class="fixed inset-0 bg-slate-900/30 backdrop-blur-sm hidden items-center justify-center z-[100] transition-opacity">
         <div class="bg-white/95 backdrop-blur-xl p-8 rounded-[2rem] shadow-2xl w-80 border border-white/60 transform scale-95 transition-transform duration-300" id="auth-modal-content">
             <h3 class="text-lg font-bold text-slate-800 mb-1 text-center">ยืนยันสิทธิ์หัวหน้างาน</h3>
-            <input type="password" id="admin-pin-code" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold text-center focus:ring-2 focus:ring-indigo-400 transition-all outline-none mb-2 shadow-inner" placeholder="กรอกรหัสยืนยัน">
+            <input type="password" id="admin-pin-code" autocomplete="new-password" class="border p-2 rounded w-full text-center" placeholder="กรอกรหัสผ่านเพื่อแก้ไข">
             <div class="flex gap-2 mt-6">
                 <button onclick="closeAuthModal()" class="flex-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-500 font-bold py-2.5 rounded-xl transition-colors text-xs shadow-sm">ยกเลิก</button>
                 <button onclick="verifyAuth()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white shadow-md font-bold py-2.5 rounded-xl transition-all text-xs btn-pop">ยืนยัน</button>
@@ -591,12 +591,36 @@
         }
         function showAuthModal() { document.getElementById('auth-modal').classList.replace('hidden', 'flex'); }
         function closeAuthModal() { document.getElementById('auth-modal').classList.replace('flex', 'hidden'); }
-        function verifyAuth() {
-            if (btoa(document.getElementById('admin-pin-code').value) === 'U0FkZWUxMTQzNg==') {
-                isSupervisorMode = true; closeAuthModal(); document.getElementById('sup-btn-text').textContent = 'ออกจากโหมดแก้ไข';
-                document.getElementById('holiday-management-panel').classList.remove('hidden'); renderScheduleTable();
-            } else alert("รหัสไม่ถูกต้อง");
+        async function verifyAuth() {
+            const pinInput = document.getElementById('admin-pin-code');
+            const pinValue = pinInput.value;
+            
+            // เคลียร์ค่าในช่องทันที ป้องกันการค้างรหัสไว้บนหน้าจอ
+            pinInput.value = '';
+
+            try {
+                // แปลงรหัสผ่านที่กรอกเป็น SHA-256 Hash
+                const msgBuffer = new TextEncoder().encode(pinValue);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+                // เทียบกับ Hash ของรหัส SAdee11436
+                if (hashHex === '9a12bc2070e28157771de99252a13cc7ab5366c3a64d1fcd8a2721f421f5fb3d') {
+                    isSupervisorMode = true; 
+                    closeAuthModal(); 
+                    document.getElementById('sup-btn-text').textContent = 'ออกจากโหมดแก้ไข';
+                    document.getElementById('holiday-management-panel').classList.remove('hidden'); 
+                    renderScheduleTable();
+                } else {
+                    alert("รหัสไม่ถูกต้อง");
+                }
+            } catch (error) {
+                console.error(error);
+                alert("ระบบตรวจสอบรหัสขัดข้อง");
+            }
         }
+
         function showToast(msg, color) { const t = document.getElementById('toast'); document.getElementById('toast-msg').textContent = msg; t.classList.replace('toast-hide', 'toast-show'); setTimeout(() => t.classList.replace('toast-show', 'toast-hide'), 3000); }
 
         window.onload = function() { setupDatePicker(); fetchFromCloud(); };
