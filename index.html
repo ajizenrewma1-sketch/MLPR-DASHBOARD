@@ -267,7 +267,9 @@
     <div id="auth-modal" class="fixed inset-0 bg-slate-900/30 backdrop-blur-sm hidden items-center justify-center z-[100] transition-opacity">
         <div class="bg-white/95 backdrop-blur-xl p-8 rounded-[2rem] shadow-2xl w-80 border border-white/60 transform scale-95 transition-transform duration-300" id="auth-modal-content">
             <h3 class="text-lg font-bold text-slate-800 mb-1 text-center">ยืนยันสิทธิ์หัวหน้างาน</h3>
-            <input type="password" id="admin-pin-code" autocomplete="new-password" class="border p-2 rounded w-full text-center" placeholder="กรอกรหัสผ่านเพื่อแก้ไข">
+            <input type="password" id="admin-pin-code" ...>
+
+<input type="password" id="x-auth-key" name="x-auth-key" autocomplete="one-time-code" class="border p-2 rounded w-full text-center" placeholder="กรอกรหัสผ่านเพื่อแก้ไข">
             <div class="flex gap-2 mt-6">
                 <button onclick="closeAuthModal()" class="flex-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-500 font-bold py-2.5 rounded-xl transition-colors text-xs shadow-sm">ยกเลิก</button>
                 <button onclick="verifyAuth()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white shadow-md font-bold py-2.5 rounded-xl transition-all text-xs btn-pop">ยืนยัน</button>
@@ -592,20 +594,19 @@
         function showAuthModal() { document.getElementById('auth-modal').classList.replace('hidden', 'flex'); }
         function closeAuthModal() { document.getElementById('auth-modal').classList.replace('flex', 'hidden'); }
         async function verifyAuth() {
-            const pinInput = document.getElementById('admin-pin-code');
+            // เปลี่ยนจาก admin-pin-code เป็น x-auth-key ตามที่แก้ใน HTML
+            const pinInput = document.getElementById('x-auth-key'); 
             const pinValue = pinInput.value;
             
-            // เคลียร์ค่าในช่องทันที ป้องกันการค้างรหัสไว้บนหน้าจอ
-            pinInput.value = '';
+            pinInput.value = ''; // ล้างค่าทันทีที่กด
 
             try {
-                // แปลงรหัสผ่านที่กรอกเป็น SHA-256 Hash
                 const msgBuffer = new TextEncoder().encode(pinValue);
                 const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
                 const hashArray = Array.from(new Uint8Array(hashBuffer));
                 const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-                // เทียบกับ Hash ของรหัส SAdee11436
+                // ตรวจสอบรหัสผ่าน (SAdee11436)
                 if (hashHex === '9a12bc2070e28157771de99252a13cc7ab5366c3a64d1fcd8a2721f421f5fb3d') {
                     isSupervisorMode = true; 
                     closeAuthModal(); 
@@ -616,7 +617,6 @@
                     alert("รหัสไม่ถูกต้อง");
                 }
             } catch (error) {
-                console.error(error);
                 alert("ระบบตรวจสอบรหัสขัดข้อง");
             }
         }
