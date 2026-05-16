@@ -805,14 +805,8 @@ function saveDailyData() {
         });
     }
 
-    // ซิงค์ข้อมูลขึ้น Cloud และอัปเดตหน้าจอเบื้องต้น
+    // ซิงค์ข้อมูลขึ้น Cloud (การวาดตารางใหม่จะถูกจัดการอัตโนมัติในฟังก์ชัน syncData)
     syncData(true); 
-    renderSummaryTable(); 
-    renderDateHeaders(); 
-    renderInputTable(); 
-    renderScheduleTable();
-    
-    showToast("บันทึกข้อมูลและอัปเดตสถานะเรียบร้อยแล้ว", "green");
 }
 // ฟังก์ชันสำหรับจัดการการกดปุ่มลูกศรเพื่อเลื่อนช่องกรอกข้อมูล
         function handleArrowKeys(e, staffId, prodId) {
