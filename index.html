@@ -524,6 +524,7 @@
 
  function renderSummaryTable() {
     const tbody = document.getElementById('summary-tbody');
+    if (!tbody) return;
     tbody.innerHTML = '';
     
     STAFF_MAP.forEach(staff => {
@@ -570,7 +571,6 @@
                 const val = masterData[key] || '';
                 const isPending = masterData[key + "_PENDING"] === true;
                 
-                // ถ้ารออนุมัติ ให้เป็นสีแดงตัวหนา
                 const textColorClass = isPending ? 'text-red-600 font-bold' : ''; 
 
                 if (isSupervisorMode) {
@@ -580,7 +580,7 @@
                             class="w-full h-full text-center text-[11px] focus:outline-none border-none p-1 cursor-pointer ${textColorClass}"
                             value="${val}"
                             oninput="updateDataFromSummary(${staff.id}, ${prod.id}, ${d}, this.value)"
-                            onclick="checkAndConfirmPending('${key}', this)">`; // หัวหน้าคลิกเพื่อยืนยันได้
+                            onclick="checkAndConfirmPending('${key}', this)">`; 
                 } else {
                     tdDay.innerHTML = `<span class="${textColorClass}" style="font-size: 11px;">${val || '0'}</span>`;
                 }
@@ -596,11 +596,10 @@ function checkAndConfirmPending(key, el) {
     if (!isSupervisorMode) return; 
     
     if (masterData[key + "_PENDING"]) {
-        // ให้หัวหน้ากดยืนยันยอด
         if (confirm("ยอดนี้มีการแก้ไขใหม่\nคุณต้องการ 'ยืนยัน' ว่ายอดนี้ถูกต้องใช่หรือไม่?\n\n(กด OK เพื่อยืนยันและล้างสีแดงออก)")) {
             delete masterData[key + "_PENDING"];
-            el.classList.remove('text-red-600', 'font-bold'); // ลบสีแดง
-            syncData(true); // บันทึกขึ้น Cloud
+            el.classList.remove('text-red-600', 'font-bold'); 
+            syncData(true); 
         }
     }
 }
@@ -747,19 +746,18 @@ function saveDailyData() {
     let staffToUpdateSchedule = []; 
     let currentShift = document.getElementById('daily-shift-input').value.trim().toUpperCase();
 
-    // 1. เช็ควันหยุด
     STAFF_MAP.forEach(staff => {
         let status = getScheduleVal(currentYear, currentMonth, currentDay, staff.id) || '';
         let hasEnteredData = false;
         PRODUCT_MAP.forEach(prod => {
-            if (document.getElementById(`input-${staff.id}-${prod.id}`).value !== "") hasEnteredData = true;
+            const inputEl = document.getElementById(`input-${staff.id}-${prod.id}`);
+            if (inputEl && inputEl.value !== "") hasEnteredData = true;
         });
         if (isFullHoliday(status) && hasEnteredData) {
             staffToUpdateSchedule.push(staff);
         }
     });
 
-    // 2. แจ้งเตือนสลับวันหยุด
     if (staffToUpdateSchedule.length > 0) {
         let names = staffToUpdateSchedule.map(s => s.nickName).join(", ");
         if (confirm(`พนักงาน (${names}): เนื่องจากวันนี้เป็นวันหยุด มีการกดบันทึกยอด เพราะมีการสลับวันหยุดกับเพื่อนหรือไม่?\n\n(หากกดยืนยัน ระบบจะเปลี่ยนตารางงานวันนี้เป็นวันทำงานกะ ${currentShift || 'A'} ให้อัตโนมัติ)`)) {
@@ -771,59 +769,46 @@ function saveDailyData() {
         }
     }
 
-    // 3. เช็คว่า "วันนี้" เคยถูกกดบันทึกยอดไปแล้วหรือยัง (ดูว่าเคยมีข้อมูลอะไรเซฟไว้ไหม)
+    // เช็คว่าวันนั้นเคยเซฟข้อมูลอะไรลงไปบ้างหรือยัง
     let isDayAlreadySaved = false;
     STAFF_MAP.forEach(staff => {
         PRODUCT_MAP.forEach(prod => {
             let v = masterData[getKey(staff.id, prod.id, currentDay)];
-            if (v !== undefined && v !== "" && v !== 0 && v !== "0") {
-                isDayAlreadySaved = true;
-            }
+            if (v !== undefined && v !== "" && v !== 0 && v !== "0") isDayAlreadySaved = true;
         });
     });
 
-    // 4. บันทึกและดักจับการแก้ซ้ำ
     STAFF_MAP.forEach(staff => {
         PRODUCT_MAP.forEach(prod => {
             const inputEl = document.getElementById(`input-${staff.id}-${prod.id}`);
+            if (!inputEl) return;
+            
             const newValue = inputEl.value.trim();
             const key = getKey(staff.id, prod.id, currentDay);
             const oldValue = masterData[key];
             const pendingKey = key + "_PENDING";
 
-            // ปรับค่าเก่าให้เทียบง่ายขึ้น (ถ้าว่างเปล่าหรือ 0 ให้ถือว่าเป็น "")
+            // ถ้าเดิมช่องว่างเปล่า ก็จะเทียบได้ถูกต้อง
             const oldValStr = (oldValue === undefined || oldValue === 0 || oldValue === "0") ? "" : oldValue.toString();
 
-            // ถ้าไม่ใช่หัวหน้า + วันนั้นเคยบันทึกไปแล้ว + ค่าเปลี่ยนไปจากเดิม (แม้จากช่องว่าง)
+            // ไม่ใช่ Sup + วันนั้นเคยบันทึกไปแล้ว + ค่าใหม่ไม่เท่าเดิม (รวมถึงช่องที่เคยว่างด้วย)
             if (!isSupervisorMode && isDayAlreadySaved && oldValStr !== newValue && newValue !== "") {
                 const label = (prod.label || '').toUpperCase();
                 if (label.includes('ML') || label.includes('MN') || label.includes('RCF') || label.includes('RECONFIRM')) {
-                    masterData[pendingKey] = true; // ตั้งค่ารออนุมัติ (ตัวแดง)
+                    masterData[pendingKey] = true; 
                 }
             } 
             
-            // ถ้าหัวหน้ากดบันทึก = อนุมัติยอด (ลบตัวแดง)
-            if (isSupervisorMode) {
-                delete masterData[pendingKey];
-            }
+            if (isSupervisorMode) delete masterData[pendingKey];
 
             masterData[key] = (newValue === "") ? 0 : parseInt(newValue);
         });
     });
 
-    // บันทึกกะงานหลัก
     masterData[getShiftKey(currentDay)] = currentShift || 'A';
-
     syncData(true); 
-}
-
-    syncData(true); 
-    renderSummaryTable(); 
-    renderDateHeaders(); 
-    renderInputTable(); 
-    renderScheduleTable();
-    
-    showToast("บันทึกข้อมูลและอัปเดตสถานะเรียบร้อยแล้ว", "green");
+    renderSummaryTable();
+    showToast("บันทึกข้อมูลเรียบร้อย", "green");
 }
 // ฟังก์ชันสำหรับจัดการการกดปุ่มลูกศรเพื่อเลื่อนช่องกรอกข้อมูล
         function handleArrowKeys(e, staffId, prodId) {
@@ -881,8 +866,8 @@ document.addEventListener('input', function(e) {
         }
 
         masterData[key] = (newValue === "") ? 0 : parseInt(newValue);
-        syncData(false); // เซฟลงเครื่อง
-        renderSummaryTable(); // สั่งให้อัปเดตตารางโชว์สีแดงทันที
+        syncData(false); 
+        renderSummaryTable(); 
     }
 });
 
