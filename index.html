@@ -207,35 +207,38 @@
         </div>
 
         <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 mb-10 no-print items-start">
-            <div class="xl:col-span-6">
-                <div class="glass-card input-card rounded-3xl">
-                    <div class="overflow-x-auto">
-                        <table class="input-table w-full border-none">
-                            <thead>
-                                <tr class="input-header-row1">
-                                    <th class="cell-a w-14 rounded-tr-xl border-r-0 border-t-0 p-0 bg-orange-500">
-                                        <input type="text" id="daily-shift-input" 
-                                               class="w-full text-center bg-orange-500 text-white outline-none text-base font-bold py-2 rounded-tr-xl placeholder-white" 
-                                               placeholder="หยุด">
-                                    </th>
-                                </tr>
-                                <tr class="input-header-row2 shadow-sm relative z-10 text-[11px]">
-                                    <th class="col-name border-l-0">ชื่อ</th>
-                                    <th class="col-ml">ML</th>
-                                    <th class="col-mn">MN</th>
-                                    <th class="col-rcf">RCF</th>
-                                    <th class="col-txn">TXN</th>
-                                    <th class="col-inq">สอบ</th>
-                                    <th class="col-log">LOG</th>
-                                    <th class="col-conv">ขบวน</th>
-                                    <th class="col-qc border-r-0">QC</th>
-                                </tr>
-                            </thead>
-                            <tbody id="input-tbody"></tbody>
-                        </table>
-                    </div>
-                </div>
+    <div class="xl:col-span-6">
+        <div class="glass-card input-card rounded-3xl">
+            <div class="overflow-x-auto">
+                <table class="input-table w-full border-none">
+                    <thead>
+                        <tr class="input-header-row1">
+                            <th class="col-name text-xs rounded-tl-xl border-l-0 border-t-0">วันนี้</th>
+                            <th colspan="6" id="display-date-label" class="text-sm tracking-wide border-t-0">-</th>
+                            <th class="text-[10px] border-t-0">กะงาน</th>
+                            <th class="cell-a w-14 rounded-tr-xl border-r-0 border-t-0 p-0 bg-orange-500">
+                                <input type="text" id="daily-shift-input" 
+                                       class="w-full text-center bg-orange-500 text-white outline-none text-base font-bold py-2 rounded-tr-xl placeholder-white" 
+                                       placeholder="หยุด">
+                            </th>
+                        </tr>
+                        <tr class="input-header-row2 shadow-sm relative z-10 text-[11px]">
+                            <th class="col-name border-l-0">ชื่อ</th>
+                            <th class="col-ml">ML</th>
+                            <th class="col-mn">MN</th>
+                            <th class="col-rcf">RCF</th>
+                            <th class="col-txn">TXN</th>
+                            <th class="col-inq">สอบ</th>
+                            <th class="col-log">LOG</th>
+                            <th class="col-conv">ขบวน</th>
+                            <th class="col-qc border-r-0">QC</th>
+                        </tr>
+                    </thead>
+                    <tbody id="input-tbody"></tbody>
+                </table>
             </div>
+        </div>
+    </div>
 
             <div class="xl:col-span-6 h-full">
                 <div class="glass-card rounded-3xl overflow-hidden flex flex-col h-full border border-slate-200/60">
