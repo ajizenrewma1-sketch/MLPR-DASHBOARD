@@ -218,7 +218,7 @@
                             <th class="text-[10px] border-t-0">กะงาน</th>
                             <th class="cell-a w-14 rounded-tr-xl border-r-0 border-t-0 p-0 bg-orange-500">
     <input type="text" id="daily-shift-input" 
-           class="w-full text-center bg-orange-500 text-white outline-none text-base font-bold py-2 rounded-tr-xl placeholder-white" 
+           class="w-full h-full text-center bg-transparent text-white outline-none text-base font-bold placeholder-white cursor-default" 
            placeholder="-" readonly>
 </th>
                         </tr>
@@ -584,6 +584,17 @@
                     }
                     continue;
                 }
+                
+                // ⭐️ แทรกจุดนี้: ตรวจสอบวันหยุดที่อยู่ในแถวสุดท้าย (แถว QC) ในแต่ละคอลัมน์วันที่
+                else if (isFullHoliday(schVal) && pIdx === PRODUCT_MAP.length - 1) {
+                    const tdDay = document.createElement('td'); 
+                    tdDay.id = `summary-shift-${d}`; // มอบ ID สรุปรายวันให้ฟังก์ชัน updateAllCalculatedShifts เข้ามาจัดการต่อ
+                    tdDay.className = "day-cell p-0 text-center text-amber-500 font-bold";
+                    tdDay.style.fontSize = "11px";
+                    tdDay.innerText = "หยุด"; 
+                    tr.appendChild(tdDay);
+                    continue;
+                }
 
                 const tdDay = document.createElement('td'); 
                 tdDay.className = "day-cell p-0";
@@ -611,7 +622,12 @@
             tbody.appendChild(tr);
         });
     });
-updatePendingBadge();
+    updatePendingBadge();
+    
+    // ⭐️ แทรกคำสั่งอัปเดตบรรทัดสุดท้ายก่อนปิดฟังก์ชัน เพื่อให้คำนวณและเกลี่ยตัวอักษรลงตารางทันทีหลังวาดโครงสร้างเสร็จ
+    if (typeof updateAllCalculatedShifts === 'function') {
+        updateAllCalculatedShifts();
+    }
 }
 
 // วางฟังก์ชันนี้ไว้ใต้ renderSummaryTable
@@ -1077,6 +1093,73 @@ function updateDailyShiftFromSchedule() {
     }
 }
 
+function updateAllCalculatedShifts() {
+    // โครงสร้างดึงแถวตารางงานทีมเดือนปัจจุบันมาประมวลผล (อิงตาม tbody id ของคุณ)
+    const scheduleRows = document.querySelectorAll('#schedule-tbody tr');
+    
+    // โครงสร้างย่อยสำหรับหาค่าฐานนิยม (กะที่มีจำนวนมากที่สุด) ในแต่ละคอลัมน์วันที่
+    function calculateTopShift(dayNum) {
+        if (scheduleRows.length === 0) return "-";
+        
+        let shiftCounts = { 'A': 0, 'B': 0, 'C': 0 };
+        let hasData = false;
+
+        scheduleRows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            // คอลัมน์ index 0 คือชื่อพนักงาน, index 1 = วันที่ 1, index 2 = วันที่ 2 ...
+            if (cells && cells[dayNum]) {
+                const shiftText = cells[dayNum].innerText.trim().toUpperCase();
+                if (shiftCounts.hasOwnProperty(shiftText)) {
+                    shiftCounts[shiftText]++;
+                    hasData = true;
+                }
+            }
+        });
+
+        // ค้นหาตัวอักษรที่มีกะงานหนาแน่นที่สุดในวันนั้น
+        let maxCount = 0;
+        let topShift = "หยุด"; // หากวันนั้นสแกนแล้วไม่มีใครเข้ากะ A B C เลย หรือเป็นวันหยุดพร้อมกันหมด ให้คงคำว่า "หยุด" ไว้
+
+        if (hasData) {
+            for (let shift in shiftCounts) {
+                if (shiftCounts[shift] > maxCount) {
+                    maxCount = shiftCounts[shift];
+                    topShift = shift;
+                }
+            }
+        }
+        return topShift;
+    }
+
+    // ส่วนที่ 2.1: อัปเดตช่องสรุปรายวันด้านบน (เหนือช่อง QC) ตามวันที่ที่ผู้ใช้กำลังเลือกพิมพ์งาน
+    if (typeof currentDay !== 'undefined') {
+        const dailyShiftInput = document.getElementById('daily-shift-input');
+        if (dailyShiftInput) {
+            dailyShiftInput.value = calculateTopShift(currentDay);
+        }
+    }
+
+    // ส่วนที่ 2.2: อัปเดตตารางระบบบันทึกและสรุปยอดงานประจำเดือน ด้านล่างสุด (คอลัมน์ 1 ถึง วันสิ้นเดือน)
+    if (typeof daysInMonth !== 'undefined') {
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dayTopShift = calculateTopShift(d);
+            
+            // ค้นหาช่องแสดงสถานะวันในตารางสรุปด้านล่าง
+            const summaryCell = document.getElementById(`summary-shift-${d}`);
+            if (summaryCell) {
+                summaryCell.innerText = dayTopShift;
+                
+                // ตกแต่งเพิ่มเติม: ถ้าเป็นกะงานหลัก ให้เปลี่ยนสีตัวอักษรให้เด่นขึ้น (เลือกปรับเปลี่ยนตามสี UI ได้ครับ)
+                if (dayTopShift !== 'หยุด' && dayTopShift !== '-') {
+    // 💡 หากต้องการให้เป็นสีน้ำเงินเด่นแบบไม่มีกล่องไฮไลท์สีฟ้า ให้ใช้คลาสบรรทัดล่างนี้แทนครับ:
+    summaryCell.className = "text-center font-bold text-blue-600"; 
+} else {
+    summaryCell.className = "text-center text-amber-500 font-bold";
+}
+            }
+        }
+    }
+}
     </script>
 </body>
 </html>
