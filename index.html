@@ -839,14 +839,19 @@ document.addEventListener('input', function(e) {
         let newValue = e.target.value;
         let key = getKey(staffId, prodId, currentDay);
         
-        let pendingKey = key + "_PENDING"; // <--- สร้าง Key เพื่อฝังสถานะขึ้น Cloud
+        // ตรงบรรทัดนี้ครับที่ Error (ต้องมีเครื่องหมายคำพูด " " ครอบ _PENDING)
+        let pendingKey = key + "_PENDING"; 
+        
         let oldValue = masterData[key];
 
-        // เงื่อนไขตัวแดง: ไม่ใช่ Sup + มีค่าเดิมในระบบ (ไม่ใช่ช่องว่าง) + ค่าใหม่ไม่เท่ากับค่าเดิม
-        if (!isSupervisorMode && oldValue !== undefined && oldValue !== "" && oldValue != newValue) {
+        // เงื่อนไขตัวแดง: ไม่ใช่ Sup + มีค่าเดิมในระบบ + ค่าใหม่ไม่เท่ากับค่าเดิม
+        if (!isSupervisorMode && oldValue !== undefined && oldValue !== "" && oldValue != newValue && newValue !== "") {
             if (prodId === 1 || prodId === 2 || prodId === 3) {
-                masterData[pendingKey] = true; // บันทึกสถานะตัวแดงฝังลงในข้อมูลเลย
+                masterData[pendingKey] = true; // บันทึกสถานะตัวแดง
             }
+        } else if (isSupervisorMode) {
+            // ถ้า Sup เป็นคนแก้เอง ให้ลบสถานะตัวแดงออก
+            delete masterData[pendingKey];
         }
 
         masterData[key] = newValue;
