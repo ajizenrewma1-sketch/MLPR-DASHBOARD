@@ -217,10 +217,10 @@
                             <th colspan="6" id="display-date-label" class="text-sm tracking-wide border-t-0">-</th>
                             <th class="text-[10px] border-t-0">กะงาน</th>
                             <th class="cell-a w-14 rounded-tr-xl border-r-0 border-t-0 p-0 bg-orange-500">
-                                <input type="text" id="daily-shift-input" 
-                                       class="w-full text-center bg-orange-500 text-white outline-none text-base font-bold py-2 rounded-tr-xl placeholder-white" 
-                                       placeholder="หยุด">
-                            </th>
+    <input type="text" id="daily-shift-input" 
+           class="w-full text-center bg-orange-500 text-white outline-none text-base font-bold py-2 rounded-tr-xl placeholder-white" 
+           placeholder="-" readonly>
+</th>
                         </tr>
                         <tr class="input-header-row2 shadow-sm relative z-10 text-[11px]">
                             <th class="col-name border-l-0">ชื่อ</th>
@@ -393,17 +393,20 @@
         }
 
         function setupDatePicker() {
-            const picker = document.getElementById('entry-date');
-            picker.value = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
-            picker.addEventListener('change', (e) => {
-                const date = new Date(e.target.value);
-                if (!isNaN(date.getTime())) {
-                    currentYear = date.getFullYear(); currentMonth = date.getMonth(); currentDay = date.getDate();
-                    daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate(); 
-                    updateLabels(); renderDateHeaders(); renderInputTable(); renderScheduleTable(); renderSummaryTable();
-                }
-            });
+    const picker = document.getElementById('entry-date');
+    picker.value = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
+    picker.addEventListener('change', (e) => {
+        const date = new Date(e.target.value);
+        if (!isNaN(date.getTime())) {
+            currentYear = date.getFullYear(); currentMonth = date.getMonth(); currentDay = date.getDate();
+            daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate(); 
+            updateLabels(); renderDateHeaders(); renderInputTable(); renderScheduleTable(); renderSummaryTable();
+            
+            // ⭐️ แทรกคำสั่งนี้เพิ่มเข้าไปต่อท้ายสุดตรงนี้ครับ
+            updateDailyShiftFromSchedule();
         }
+    });
+}
 
       function updateLabels() {
     const dateObj = new Date(currentYear, currentMonth, currentDay);
@@ -809,7 +812,15 @@ function updateShiftFromSummary(day, value) {
 
         function showToast(msg, color) { const t = document.getElementById('toast'); document.getElementById('toast-msg').textContent = msg; t.classList.replace('toast-hide', 'toast-show'); setTimeout(() => t.classList.replace('toast-show', 'toast-hide'), 3000); }
 
-        window.onload = function() { setupDatePicker(); fetchFromCloud(); };
+        window.onload = function() { 
+    setupDatePicker(); 
+    fetchFromCloud(); 
+    
+    // หน่วงเวลา 500 มิลลิวินาที (หรือปรับตามเหมาะสม) เพื่อให้ตารางทีมดึงค่าและเรนเดอร์เสร็จก่อน จึงค่อยคำนวณค่ากะงานหลัก
+    setTimeout(() => {
+        updateDailyShiftFromSchedule();
+    }, 500);
+};
 function saveDailyData() {
     let staffToUpdateSchedule = []; 
     let currentShift = document.getElementById('daily-shift-input').value.trim().toUpperCase();
@@ -1014,6 +1025,58 @@ function updatePendingBadge() {
         }
     }
 }
+
+// ฟังก์ชันคำนวณหากะงานหลัก (Mode/ฐานนิยม) จากตารางทีม
+function updateDailyShiftFromSchedule() {
+    // 1. ดึงเลขวันที่จากตัวแปร global (currentDay) ของระบบคุณ
+    const targetDay = currentDay; 
+
+    // 2. เจาะจงหาแถวเฉพาะใน "ตารางงานทีมเดือนปัจจุบัน" 
+    // โดยเช็คจากภาพหน้าจอ ตารางทีมด้านล่างน่าจะใช้ tbody id เช่น 'schedule-tbody' หรือใกล้เคียง
+    const scheduleRows = document.querySelectorAll('#schedule-tbody tr');
+    
+    // ถ้าไม่เจอแถวข้อมูล ให้หยุดทำงานทันที (ป้องกัน error กระทบส่วนอื่น)
+    if (scheduleRows.length === 0) return;
+
+    let shiftCounts = { 'A': 0, 'B': 0, 'C': 0 };
+    let hasData = false;
+
+    scheduleRows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        
+        // คอลัมน์ที่ 0 = ชื่อคน, คอลัมน์ที่ 1 = วันที่ 1, คอลัมน์ที่ 2 = วันที่ 2 ...
+        // Index ของเซลล์จะตรงกับค่า targetDay พอดีเป๊ะ
+        if (cells && cells[targetDay]) {
+            const shiftText = cells[targetDay].innerText.trim().toUpperCase();
+            
+            // นับคะแนนเฉพาะกะหลัก A, B, C เท่านั้น
+            if (shiftCounts.hasOwnProperty(shiftText)) {
+                shiftCounts[shiftText]++;
+                hasData = true;
+            }
+        }
+    });
+
+    // 3. หาค่ากะงานที่มีการบันทึกมากที่สุด (ฐานนิยม)
+    let maxCount = 0;
+    let mostFrequentShift = "-"; 
+
+    if (hasData) {
+        for (let shift in shiftCounts) {
+            if (shiftCounts[shift] > maxCount) {
+                maxCount = shiftCounts[shift];
+                mostFrequentShift = shift;
+            }
+        }
+    }
+
+    // 4. หยอดค่าที่คำนวณได้ลงในช่อง input เหนือ QC เพื่อให้ฟังก์ชัน saveDailyData ดึงไปใช้งานต่อ
+    const dailyShiftInput = document.getElementById('daily-shift-input');
+    if (dailyShiftInput) {
+        dailyShiftInput.value = mostFrequentShift;
+    }
+}
+
     </script>
 </body>
 </html>
