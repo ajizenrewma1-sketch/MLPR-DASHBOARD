@@ -578,7 +578,7 @@
                             class="w-full h-full text-center text-[11px] focus:outline-none border-none p-1 cursor-pointer ${textColorClass}"
                             value="${val}"
                             oninput="updateDataFromSummary(${staff.id}, ${prod.id}, ${d}, this.value)"
-                            onclick="checkAndConfirmPending(${staff.id}, ${prod.id}, ${d}, this)">`;
+                            onclick="checkAndConfirmPending(${staff.id}, ${prod.id}, ${d}, this)">`; // <-- เพิ่มบรรทัดนี้
                 } else {
                     tdDay.innerHTML = `<span class="${textColorClass}" style="font-size: 11px;">${val || '0'}</span>`;
                 }
@@ -587,6 +587,19 @@
             tbody.appendChild(tr);
         });
     });
+}
+
+function checkAndConfirmPending(staffId, prodId, day, el) {
+    if (!isSupervisorMode) return; // ถ้าไม่ใช่หัวหน้า กดแล้วไม่มีอะไรเกิดขึ้น
+    
+    const key = getKey(staffId, prodId, day);
+    if (masterData[key + "_PENDING"]) {
+        if (confirm("ยอดนี้มีการแก้ไขใหม่\nคุณต้องการ 'ยืนยัน' ว่ายอดนี้ถูกต้องใช่หรือไม่?\n\n(กด OK เพื่อยืนยันและล้างสีแดงออก)")) {
+            delete masterData[key + "_PENDING"];
+            el.classList.remove('text-red-600', 'font-bold');
+            syncData(true); // เซฟขึ้น Cloud ทันที
+        }
+    }
 }
 
 function updateDataFromSummary(staffId, prodId, day, value) {
@@ -728,19 +741,16 @@ function updateDataFromSummary(staffId, prodId, day, value) {
 
         window.onload = function() { setupDatePicker(); fetchFromCloud(); };
 function saveDailyData() {
-    let staffToUpdateSchedule = []; // เก็บรายชื่อเฉพาะคนที่ลงยอดในวันหยุด
+    let staffToUpdateSchedule = []; 
     let currentShift = document.getElementById('daily-shift-input').value.trim().toUpperCase();
 
-    // 1. ตรวจสอบว่ามีพนักงานคนไหนบ้างที่ลงยอดในวันหยุดตัวเอง
     STAFF_MAP.forEach(staff => {
         let status = getScheduleVal(currentYear, currentMonth, currentDay, staff.id) || '';
         let hasEnteredData = false;
 
         PRODUCT_MAP.forEach(prod => {
             const inputVal = document.getElementById(`input-${staff.id}-${prod.id}`).value;
-            if (inputVal !== "") {
-                hasEnteredData = true;
-            }
+            if (inputVal !== "") hasEnteredData = true;
         });
 
         if (isFullHoliday(status) && hasEnteredData) {
@@ -748,7 +758,6 @@ function saveDailyData() {
         }
     });
 
-    // --- ส่วนของเงื่อนไขแจ้งเตือนวันหยุด ---
     if (staffToUpdateSchedule.length > 0) {
         let names = staffToUpdateSchedule.map(s => s.nickName).join(", ");
         let message = `พนักงาน (${names}): เนื่องจากวันนี้เป็นวันหยุด มีการกดบันทึกยอด เพราะมีการสลับวันหยุดกับเพื่อนหรือไม่?\n\n(หากกดยืนยัน ระบบจะเปลี่ยนตารางงานวันนี้เป็นวันทำงานกะ ${currentShift || 'A'} ให้โดยอัตโนมัติ)`;
@@ -758,15 +767,12 @@ function saveDailyData() {
                 masterData[getScheduleKey(currentYear, currentMonth, currentDay, staff.id)] = currentShift || 'A';
             });
         } else {
-            // ถ้าพนักงานกดยกเลิก (Cancel) จะหยุดทำงานทันที ไม่เซฟและไม่เปลี่ยนค่าใดๆ
             return; 
         }
     }
 
-    // --- เช็คว่า "วันนี้" เคยถูกกดบันทึกไปแล้วหรือยัง (แก้ปัญหาข้อ 2) ---
     const isDayAlreadySaved = !!masterData[getShiftKey(currentDay)];
 
-    // --- ส่วนของเงื่อนไขการบันทึกยอด และตรวจสอบการแก้ไขซ้ำ (ตัวแดงฝังขึ้น Cloud) ---
     STAFF_MAP.forEach(staff => {
         PRODUCT_MAP.forEach(prod => {
             const inputEl = document.getElementById(`input-${staff.id}-${prod.id}`);
@@ -775,16 +781,16 @@ function saveDailyData() {
             const oldValue = masterData[key];
             const pendingKey = key + "_PENDING";
 
-            // ตรวจสอบเงื่อนไขตัวแดง: ไม่ใช่ Sup + วันนี้เคยถูกบันทึกไปแล้ว + ค่าใหม่ไม่เท่ากับค่าเดิม
-            if (!isSupervisorMode && isDayAlreadySaved && oldValue != newValue && newValue !== "") {
+            // แปลงค่าเก่าที่ว่างเปล่าหรือเป็น 0 ให้กลายเป็น "" เพื่อให้เปรียบเทียบได้ถูกต้อง (แก้ปัญหาข้อ 3)
+            const oldValStr = (oldValue === undefined || oldValue === 0 || oldValue === "0") ? "" : oldValue.toString();
+
+            if (!isSupervisorMode && isDayAlreadySaved && oldValStr !== newValue && newValue !== "") {
                 const label = (prod.label || '').toUpperCase();
-                // ตรวจจับเฉพาะกลุ่มคอลัมน์ ML, MN, RCF หรือ Reconfirm ตามชื่อย่อรายการ
                 if (label.includes('ML') || label.includes('MN') || label.includes('RCF') || label.includes('RECONFIRM')) {
-                    masterData[pendingKey] = true; // ฝังสถานะตัวแดงส่งขึ้น Cloud ทันที
+                    masterData[pendingKey] = true; 
                 }
             } 
             
-            // ถ้าหัวหน้างาน (Sup) มาเป็นคนกดบันทึก จะล้างสถานะตัวแดงของช่องนั้นออก (อนุมัติยอด)
             if (isSupervisorMode) {
                 delete masterData[pendingKey];
             }
@@ -793,10 +799,8 @@ function saveDailyData() {
         });
     });
 
-    // บันทึกกะงานหลักประจำวัน
     masterData[getShiftKey(currentDay)] = currentShift;
 
-    // ล้างสถานะตัวแดงของวันนั้นทั้งหมดเพื่อความชัวร์ หากกดบันทึกในโหมดแก้ไข (Sup Mode)
     if (isSupervisorMode) {
         STAFF_MAP.forEach(staff => {
             PRODUCT_MAP.forEach(prod => {
@@ -805,7 +809,6 @@ function saveDailyData() {
         });
     }
 
-    // ซิงค์ข้อมูลขึ้น Cloud และอัปเดตหน้าจอเบื้องต้น
     syncData(true); 
     renderSummaryTable(); 
     renderDateHeaders(); 
@@ -852,7 +855,10 @@ document.addEventListener('input', function(e) {
         const isDayAlreadySaved = !!masterData[getShiftKey(currentDay)];
         const prod = PRODUCT_MAP.find(p => p.id === prodId);
 
-        if (prod && !isSupervisorMode && isDayAlreadySaved && oldValue != newValue && newValue !== "") {
+        // แปลงค่าเก่าให้เปรียบเทียบง่ายขึ้น (ถ้าเป็น undefined หรือ 0 จะกลายเป็น "")
+        const oldValStr = (oldValue === undefined || oldValue === 0 || oldValue === "0") ? "" : oldValue.toString();
+
+        if (prod && !isSupervisorMode && isDayAlreadySaved && oldValStr !== newValue && newValue !== "") {
             const label = (prod.label || '').toUpperCase();
             if (label.includes('ML') || label.includes('MN') || label.includes('RCF') || label.includes('RECONFIRM')) {
                 masterData[pendingKey] = true; 
