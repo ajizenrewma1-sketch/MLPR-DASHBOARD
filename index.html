@@ -534,38 +534,38 @@
 }
 
         function renderScheduleTable() {
-            const thead = document.getElementById('schedule-thead');
-            const tbody = document.getElementById('schedule-tbody');
-            thead.innerHTML = ''; tbody.innerHTML = '';
-            
-            // สร้าง Header
-            let headTr = document.createElement('tr');
-            headTr.innerHTML = '<th class="py-1 border-r border-slate-200 min-w-[50px] sticky left-0 bg-slate-50/90 z-20">ชื่อ</th>';
-            for(let d = 1; d <= daysInMonth; d++) { headTr.innerHTML += `<th class="schedule-cell border-r border-slate-200">${d}</th>`; }
-            thead.appendChild(headTr);
-
-            STAFF_MAP.forEach(staff => {
-                let tr = document.createElement('tr');
-                tr.innerHTML = `<td class="py-1 border-r border-slate-200 font-bold sticky left-0 bg-white/90">${staff.nickName}</td>`;
-                
-                for(let d = 1; d <= daysInMonth; d++) {
-                    const schVal = getScheduleVal(currentYear, currentMonth, d, staff.id);
-                    const td = document.createElement('td');
-                    td.className = `schedule-cell border-r border-slate-100 font-bold transition-all`;
-                    
-                    // *** แก้ไข: ลบเงื่อนไข contentEditable และ onblur ออกทั้งหมด ***
-                    // ตารางนี้จะเป็น ReadOnly เสมอ ไม่ว่าจะอยู่ในโหมดไหน
-                    
-                    if (isFullHoliday(schVal)) td.classList.add('text-slate-400', 'bg-slate-50');
-                    else if (schVal.includes('ลา')) td.classList.add('text-green-600');
-                    else td.classList.add('text-blue-600');
-                    
-                    td.textContent = schVal;
-                    tr.appendChild(td);
-                }
-                tbody.appendChild(tr);
-            });
+        const thead = document.getElementById('schedule-thead');
+        const tbody = document.getElementById('schedule-tbody');
+        thead.innerHTML = ''; tbody.innerHTML = '';
+        
+        let headTr = document.createElement('tr');
+        headTr.innerHTML = '<th class="py-1 border-r border-slate-200 min-w-[50px] sticky left-0 bg-slate-50/90 z-20">ชื่อ</th>';
+        for(let d = 1; d <= daysInMonth; d++) { 
+            headTr.innerHTML += `<th class="schedule-cell border-r border-slate-200">${d}</th>`; 
         }
+        thead.appendChild(headTr);
+
+        STAFF_MAP.forEach(staff => {
+            let tr = document.createElement('tr');
+            tr.innerHTML = `<td class="py-1 border-r border-slate-200 font-bold sticky left-0 bg-white/90">${staff.nickName}</td>`;
+            
+            for(let d = 1; d <= daysInMonth; d++) {
+                // *** เพิ่ม || '' ตรงนี้เพื่อป้องกัน Error หน้าขาวเวลาข้อมูลกะงานว่างเปล่า ***
+                const schVal = getScheduleVal(currentYear, currentMonth, d, staff.id) || ''; 
+                
+                const td = document.createElement('td');
+                td.className = `schedule-cell border-r border-slate-100 font-bold transition-all`;
+                
+                if (isFullHoliday(schVal)) td.classList.add('text-slate-400', 'bg-slate-50');
+                else if (schVal.includes('ลา')) td.classList.add('text-green-600');
+                else td.classList.add('text-blue-600');
+                
+                td.textContent = schVal;
+                tr.appendChild(td);
+            }
+            tbody.appendChild(tr);
+        });
+    }
 
         function handleSchedulePaste(e, startDay, startStaffId) {
             e.preventDefault();
@@ -584,77 +584,71 @@
             syncData(true); renderScheduleTable(); renderSummaryTable();
         }
 
-        function function renderSummaryTable() {
-    const tbody = document.getElementById('summary-tbody');
-    tbody.innerHTML = '';
-    
-    STAFF_MAP.forEach(staff => {
-        PRODUCT_MAP.forEach((prod, pIdx) => {
-            const tr = document.createElement('tr');
-            if (pIdx === PRODUCT_MAP.length - 1) tr.className = "staff-divider";
-            
-            if (pIdx === 0) {
-                const tdName = document.createElement('td'); 
-                tdName.rowSpan = PRODUCT_MAP.length; 
-                tdName.className = `sticky-col-1 ${staff.class} border-r-2`;
-                tdName.innerHTML = `<div class="p-2"><strong>${staff.fullName}</strong><br><span class="text-xs opacity-60">(${staff.nickName})</span></div>`; 
-                tr.appendChild(tdName);
-            }
-
-            tr.innerHTML += `
-                <td class="sticky-col-2 ${prod.label === 'QC' ? 'qc-text' : ''} bg-white/90">${prod.label}</td>
-                <td class="sticky-col-3 font-bold text-blue-600">${calculateSum(staff.id, prod.id) || '0'}</td>`;
-
-            for (let d = 1; d <= daysInMonth; d++) {
-                const schVal = getScheduleVal(currentYear, currentMonth, d, staff.id);
+ function renderSummaryTable() {
+        const tbody = document.getElementById('summary-tbody');
+        tbody.innerHTML = '';
+        
+        STAFF_MAP.forEach(staff => {
+            PRODUCT_MAP.forEach((prod, pIdx) => {
+                const tr = document.createElement('tr');
+                if (pIdx === PRODUCT_MAP.length - 1) tr.className = "staff-divider";
                 
-                // 1. กรณีเป็นวันหยุดเต็มวัน
-                if (isFullHoliday(schVal) && pIdx < PRODUCT_MAP.length - 1) {
-                    if (pIdx === 0) {
-                        const tdHol = document.createElement('td'); 
-                        tdHol.rowSpan = PRODUCT_MAP.length - 1; 
-                        let label = "";
-                        let cls = "";
-                        if (schVal === 'หยุด') { label = "วันหยุดประจำสัปดาห์"; cls = "holiday-weekly"; }
-                        else if (schVal === 'ลา') { label = "วันหยุดพักร้อน"; cls = "holiday-leave"; }
-                        else if (schVal.includes('สลับ')) { label = "สลับวันหยุดกับเพื่อน"; cls = "holiday-swap"; }
+                if (pIdx === 0) {
+                    const tdName = document.createElement('td'); 
+                    tdName.rowSpan = PRODUCT_MAP.length; 
+                    tdName.className = `sticky-col-1 ${staff.class} border-r-2`;
+                    tdName.innerHTML = `<div class="p-2"><strong>${staff.fullName}</strong><br><span class="text-xs opacity-60">(${staff.nickName})</span></div>`; 
+                    tr.appendChild(tdName);
+                }
 
-                        tdHol.className = `day-cell ${cls} font-bold`; 
-                        tdHol.innerHTML = `<span class="vertical-text" style="font-size: 10px;">${label}</span>`;
-                        tr.appendChild(tdHol);
+                tr.innerHTML += `
+                    <td class="sticky-col-2 ${prod.label === 'QC' ? 'qc-text' : ''} bg-white/90">${prod.label}</td>
+                    <td class="sticky-col-3 font-bold text-blue-600">${calculateSum(staff.id, prod.id) || '0'}</td>`;
+
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const schVal = getScheduleVal(currentYear, currentMonth, d, staff.id) || ''; // ป้องกัน Error
+                    
+                    if (isFullHoliday(schVal) && pIdx < PRODUCT_MAP.length - 1) {
+                        if (pIdx === 0) {
+                            const tdHol = document.createElement('td'); 
+                            tdHol.rowSpan = PRODUCT_MAP.length - 1; 
+                            let label = ""; let cls = "";
+                            if (schVal === 'หยุด') { label = "วันหยุดประจำสัปดาห์"; cls = "holiday-weekly"; }
+                            else if (schVal === 'ลา') { label = "วันหยุดพักร้อน"; cls = "holiday-leave"; }
+                            else if (schVal.includes('สลับ')) { label = "สลับวันหยุดกับเพื่อน"; cls = "holiday-swap"; }
+
+                            tdHol.className = `day-cell ${cls} font-bold`; 
+                            tdHol.innerHTML = `<span class="vertical-text" style="font-size: 10px;">${label}</span>`;
+                            tr.appendChild(tdHol);
+                        }
+                        continue;
                     }
-                    continue;
+
+                    const tdDay = document.createElement('td'); 
+                    tdDay.className = "day-cell p-0";
+                    if (schVal.includes('ช่วงเวลา')) tdDay.classList.add('watermark-cell');
+
+                    const key = getKey(staff.id, prod.id, d);
+                    const val = masterData[key] || '';
+                    const isPending = masterData[key + "_PENDING"] === true;
+                    const textColorClass = isPending ? 'text-red-600 font-bold' : ''; 
+
+                    if (isSupervisorMode) {
+                        const inputId = `summary-${staff.id}-${prod.id}-${d}`;
+                        tdDay.innerHTML = `
+                            <input type="number" id="${inputId}" 
+                                class="w-full h-full text-center text-[11px] focus:outline-none border-none p-1 ${textColorClass}"
+                                value="${val}"
+                                oninput="updateDataFromSummary(${staff.id}, ${prod.id}, ${d}, this.value)">`;
+                    } else {
+                        tdDay.innerHTML = `<span class="${textColorClass}" style="font-size: 11px;">${val || '0'}</span>`;
+                    }
+                    tr.appendChild(tdDay);
                 }
-
-                // 2. กรณีเป็นวันทำงานปกติ หรือ ลาพักร้อนแบบระบุช่วงเวลา
-                const tdDay = document.createElement('td'); 
-                tdDay.className = "day-cell p-0";
-                if (schVal && schVal.includes('ช่วงเวลา')) tdDay.classList.add('watermark-cell');
-
-                // --- ส่วนที่ปรับปรุง: เช็คสถานะสีแดง ---
-                const key = getKey(staff.id, prod.id, d);
-                const val = masterData[key] || '';
-                const isPending = masterData[key + "_PENDING"] === true; // เช็คสถานะแก้ซ้ำจาก Cloud
-                const textColorClass = isPending ? 'text-red-600 font-bold' : ''; 
-                // ----------------------------------
-
-                if (isSupervisorMode) {
-                    const inputId = `summary-${staff.id}-${prod.id}-${d}`;
-                    tdDay.innerHTML = `
-                        <input type="number" id="${inputId}" 
-                            class="w-full h-full text-center text-[11px] focus:outline-none border-none p-1 ${textColorClass}"
-                            value="${val}"
-                            oninput="updateDataFromSummary(${staff.id}, ${prod.id}, ${d}, this.value)">`;
-                } else {
-                    // แสดงเป็นตัวเลขสีแดงหากมีการแก้ไขซ้ำ
-                    tdDay.innerHTML = `<span class="${textColorClass}" style="font-size: 11px;">${val || '0'}</span>`;
-                }
-                tr.appendChild(tdDay);
-            }
-            tbody.appendChild(tr);
+                tbody.appendChild(tr);
+            });
         });
-    });
-}
+    }
 
 // ฟังก์ชันช่วยบันทึกค่าที่พิมพ์ในตารางสรุป
 function updateDataFromSummary(staffId, prodId, day, value) {
@@ -720,45 +714,26 @@ function updateDataFromSummary(staffId, prodId, day, value) {
         }
 
         function renderInputTable() {
-            const tbody = document.getElementById('input-tbody');
-            tbody.innerHTML = '';
-            
-            STAFF_MAP.forEach((staff, index) => {
-                let tr = document.createElement('tr');
-                if(index % 2 !== 0) tr.classList.add('bg-slate-50');
+        const tbody = document.getElementById('input-tbody');
+        tbody.innerHTML = '';
+        STAFF_MAP.forEach((staff, index) => {
+            let tr = document.createElement('tr');
+            tr.innerHTML = `<td class="py-2 px-1 border-b border-r sticky left-0 z-10 bg-white font-bold text-xs">${staff.nickName}</td>`;
+            PRODUCT_MAP.forEach(prod => {
+                let key = getKey(staff.id, prod.id, currentDay);
+                let val = masterData[key] || '';
+                const isQC = (prod.label === 'QC');
+                const isLocked = isQC && !isSupervisorMode; // ล็อค QC ถ้าไม่ใช่ Sup
                 
-                tr.innerHTML = `<td class="py-2 px-1 border-b border-r border-slate-200 sticky left-0 z-10 ${staff.class}">
-                                    <div class="font-bold whitespace-nowrap text-xs pl-1">${staff.nickName}</div>
-                                </td>`;
-                
-                PRODUCT_MAP.forEach(prod => {
-                    let td = document.createElement('td');
-                    td.className = "p-0 border-b border-r border-slate-200 relative";
-                    
-                    let key = getKey(staff.id, prod.id, currentDay);
-                    let val = masterData[key] || '';
-                    
-                    // --- เพิ่มเงื่อนไขล็อคช่อง QC ตรงนี้ ---
-                    const isQC = (prod.label === 'QC'); // ตรวจสอบว่าเป็นคอลัมน์ QC หรือไม่
-                    const isLocked = isQC && !isSupervisorMode; // ล็อคถ้าเป็น QC และไม่ใช่โหมด Sup
-                    
-                    // กำหนดสีพื้นหลังให้เป็นสีเทาถ้าถูกล็อค
-                    const bgClass = isLocked ? 'bg-gray-200 cursor-not-allowed' : 'bg-transparent';
-                    // ใส่ readonly ถ้าถูกล็อค
-                    const readOnlyAttr = isLocked ? 'readonly' : '';
-
-                    td.innerHTML = `
-                        <input type="number" id="input-${staff.id}-${prod.id}" 
-                            class="w-full h-full min-h-[35px] text-center text-sm focus:outline-none focus:bg-blue-50 transition-colors ${bgClass}"
-                            value="${val}"
-                            ${readOnlyAttr}
-                        >
-                    `;
-                    tr.appendChild(td);
-                });
-                tbody.appendChild(tr);
+                tr.innerHTML += `<td class="p-0 border-b border-r relative">
+                    <input type="number" id="input-${staff.id}-${prod.id}" 
+                        class="w-full h-full min-h-[35px] text-center text-sm focus:outline-none ${isLocked ? 'bg-gray-100 cursor-not-allowed' : 'focus:bg-blue-50'}"
+                        value="${val}" ${isLocked ? 'readonly' : ''}>
+                </td>`;
             });
-        }
+            tbody.appendChild(tr);
+        });
+    }
 
         function toggleSupervisorMode() {
             if (isSupervisorMode) {
