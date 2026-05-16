@@ -218,11 +218,15 @@
                                     <th class="text-[10px] border-t-0">กะงาน</th>
                                     <th class="cell-a w-14 rounded-tr-xl border-r-0 border-t-0" style="padding: 0;">
                                         <div class="flex items-center justify-center gap-2">
-    <input type="text" id="daily-shift-input" class="w-12 text-center bg-transparent outline-none text-xl font-bold text-[#78350f]" placeholder="-">
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-1.5 p-1">
+    <div class="flex items-center bg-white/80 border border-amber-300 rounded-lg px-1.5 py-0.5 shadow-sm">
+        <span class="text-[10px] text-amber-800 font-bold mr-1">คีย์:</span>
+        <input type="text" id="daily-shift-input" class="w-7 text-center bg-transparent outline-none text-base font-bold text-[#78350f]" placeholder="-">
+    </div>
     
-    <div class="flex items-center bg-orange-50 border border-orange-300 rounded px-2 py-0.5 shadow-inner">
-        <span class="text-[11px] text-orange-600 font-medium mr-1 whitespace-nowrap">กะทีม:</span>
-        <input type="text" id="team-shift-display" class="w-6 text-center bg-transparent outline-none text-sm font-bold text-orange-700 cursor-not-allowed" readonly placeholder="-">
+    <div class="flex items-center bg-orange-100 border border-orange-400 rounded-lg px-1.5 py-0.5 shadow-sm">
+        <span class="text-[10px] text-orange-700 font-bold mr-1">กะทีม:</span>
+        <input type="text" id="team-shift-display" class="w-5 text-center bg-transparent outline-none text-base font-bold text-orange-800 cursor-not-allowed" readonly placeholder="-">
     </div>
 </div>
                                     </th>
@@ -410,16 +414,17 @@
             });
         }
 
-        function updateLabels() {
-            const dateObj = new Date(currentYear, currentMonth, currentDay);
-            document.getElementById('display-date-label').textContent = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
-            document.getElementById('dashboard-subtitle').textContent = `ระบบบันทึกและสรุปยอดงานประจำเดือน ${thaiMonths[currentMonth]} ${currentYear}`;
-            document.getElementById('summary-table-header').textContent = `ระบบบันทึกและสรุปยอดงานประจำเดือน ${thaiMonths[currentMonth]} ${currentYear}`;
-            document.getElementById('daily-shift-input').value = masterData[getShiftKey(currentDay)] || '';
-	    const savedTeamShift = masterData[getShiftKey(currentDay)] || '-';
-    	    const teamShiftEl = document.getElementById('team-shift-display');
-            if (teamShiftEl) teamShiftEl.value = savedTeamShift;
-        }
+       function updateLabels() {
+    const dateObj = new Date(currentYear, currentMonth, currentDay);
+    document.getElementById('display-date-label').textContent = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+    document.getElementById('dashboard-subtitle').textContent = `ระบบบันทึกและสรุปยอดงานประจำเดือน ${thaiMonths[currentMonth]} ${currentYear}`;
+    document.getElementById('summary-table-header').textContent = `ระบบบันทึกและสรุปยอดงานประจำเดือน ${thaiMonths[currentMonth]} ${currentYear}`;
+    const currentShiftVal = masterData[getShiftKey(currentDay)] || '';
+    document.getElementById('daily-shift-input').value = currentShiftVal;
+    
+    const teamShiftEl = document.getElementById('team-shift-display');
+    if (teamShiftEl) teamShiftEl.value = currentShiftVal || '-';
+}
 
         async function fetchFromCloud() {
             document.getElementById('global-loader').style.display = 'flex';
@@ -687,15 +692,57 @@ function updateDataFromSummary(staffId, prodId, day, value) {
         }
 
         function renderDateHeaders() {
-            const row = document.getElementById('date-headers'); row.innerHTML = '';
-            for (let i = 1; i <= daysInMonth; i++) {
-                const th = document.createElement('th'); th.className = "day-cell bg-slate-700";
-                const shift = masterData[getShiftKey(i)];
-                th.innerHTML = `${i}${shift ? `<br><span class="text-[9px] text-amber-400">(${shift})</span>` : ''}`;
-                row.appendChild(th);
-            }
+    const row = document.getElementById('date-headers'); 
+    if (!row) return;
+    row.innerHTML = '';
+    
+    for (let i = 1; i <= daysInMonth; i++) {
+        const th = document.createElement('th'); 
+        th.className = "day-cell bg-slate-700 text-white p-1 text-center min-w-[45px]";
+        
+        const shift = masterData[getShiftKey(i)] || '';
+        
+        // ถ้าเป็นโหมด Sup/Supervisor ให้แสดงเป็นช่อง Input พิมพ์แก้ไขกะงานใต้ตัวเลขวันที่ได้เลย
+        if (isSupervisorMode) {
+            th.innerHTML = `
+                <div class="text-xs font-bold mb-0.5">${i}</div>
+                <input type="text" 
+                       class="w-full text-center bg-slate-800 text-amber-400 font-bold text-[11px] rounded border border-slate-600 focus:border-amber-400 focus:outline-none p-0.5" 
+                       value="${shift}" 
+                       placeholder="-"
+                       oninput="updateShiftFromSummary(${i}, this.value)">
+            `;
+        } else {
+            // โหมดพนักงานปกติ ให้แสดงเป็นข้อความอ่านได้อย่างเดียวเหมือนเดิม
+            th.innerHTML = `
+                <div class="text-xs font-bold">${i}</div>
+                ${shift ? `<span class="text-[10px] text-amber-400 font-bold">(${shift})</span>` : '<span class="text-[10px] text-slate-500">-</span>'}
+            `;
         }
+        row.appendChild(th);
+    }
+}
 
+// ฟังก์ชันใหม่: รองรับการแก้ไขกะงานจากตารางสรุปด้านล่างในโหมด Sup
+function updateShiftFromSummary(day, value) {
+    if (!isSupervisorMode) return;
+    const cleanValue = value.trim().toUpperCase();
+    
+    // บันทึกกะงานลงฐานข้อมูล
+    masterData[getShiftKey(day)] = cleanValue;
+    
+    // ถ้าแก้ไขตรงกับวันที่กำลังเลือกอยู่ด้านบน ให้ช่องด้านบนอัปเดตตามด้วยทันที
+    if (day === currentDay) {
+        const dailyShiftInput = document.getElementById('daily-shift-input');
+        if (dailyShiftInput) dailyShiftInput.value = cleanValue;
+        
+        const teamShiftDisplay = document.getElementById('team-shift-display');
+        if (teamShiftDisplay) teamShiftDisplay.value = cleanValue || '-';
+    }
+    
+    // ซิงค์ข้อมูลขึ้น Cloud (เซฟแบบเบื้องหลังไม่ให้หน้าจอกระตุก)
+    syncData(false);
+}
         function renderInputTable() {
         const tbody = document.getElementById('input-tbody');
         tbody.innerHTML = '';
@@ -726,6 +773,7 @@ function updateDataFromSummary(staffId, prodId, day, value) {
                 renderScheduleTable();
                 renderInputTable();
                 renderSummaryTable(); 
+		renderDateHeaders();
             } else showAuthModal();
         }
         function showAuthModal() { document.getElementById('auth-modal').classList.replace('hidden', 'flex'); }
@@ -747,6 +795,7 @@ function updateDataFromSummary(staffId, prodId, day, value) {
             renderScheduleTable();
             renderInputTable();
             renderSummaryTable(); 
+	    renderDateHeaders();
         } else {
             alert("รหัสไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง");
         }
