@@ -217,7 +217,14 @@
                                     <th colspan="6" id="display-date-label" class="text-sm tracking-wide border-t-0">-</th>
                                     <th class="text-[10px] border-t-0">กะงาน</th>
                                     <th class="cell-a w-14 rounded-tr-xl border-r-0 border-t-0" style="padding: 0;">
-                                        <input type="text" id="daily-shift-input" class="w-full text-center bg-transparent outline-none text-xl font-bold text-[#78350f]" placeholder="-">
+                                        <div class="flex items-center justify-center gap-2">
+    <input type="text" id="daily-shift-input" class="w-12 text-center bg-transparent outline-none text-xl font-bold text-[#78350f]" placeholder="-">
+    
+    <div class="flex items-center bg-orange-50 border border-orange-300 rounded px-2 py-0.5 shadow-inner">
+        <span class="text-[11px] text-orange-600 font-medium mr-1 whitespace-nowrap">กะทีม:</span>
+        <input type="text" id="team-shift-display" class="w-6 text-center bg-transparent outline-none text-sm font-bold text-orange-700 cursor-not-allowed" readonly placeholder="-">
+    </div>
+</div>
                                     </th>
                                 </tr>
                                 <tr class="input-header-row2 shadow-sm relative z-10 text-[11px]">
@@ -409,6 +416,9 @@
             document.getElementById('dashboard-subtitle').textContent = `ระบบบันทึกและสรุปยอดงานประจำเดือน ${thaiMonths[currentMonth]} ${currentYear}`;
             document.getElementById('summary-table-header').textContent = `ระบบบันทึกและสรุปยอดงานประจำเดือน ${thaiMonths[currentMonth]} ${currentYear}`;
             document.getElementById('daily-shift-input').value = masterData[getShiftKey(currentDay)] || '';
+	    const savedTeamShift = masterData[getShiftKey(currentDay)] || '-';
+    	    const teamShiftEl = document.getElementById('team-shift-display');
+            if (teamShiftEl) teamShiftEl.value = savedTeamShift;
         }
 
         async function fetchFromCloud() {
