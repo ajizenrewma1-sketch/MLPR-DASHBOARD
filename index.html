@@ -545,6 +545,35 @@
         }
 
  function renderSummaryTable() {
+    // === 1. ส่วนโครงสร้างหัวตาราง (THEAD) ของตารางสรุป ===
+    const thead = document.getElementById('summary-thead');
+    if (thead) {
+        let thDays = '';
+        for (let d = 1; d <= daysInMonth; d++) {
+            // ⭐️ จุดสำคัญ: ฝัง ID กำกับวัน d ให้ชัดเจน เพื่อให้ฟังก์ชันคำนวณเอาค่ามาหยอดได้ตรงคอลัมน์เป๊ะๆ
+            thDays += `
+                <th class="p-1 text-center min-w-[42px] border-r border-slate-200">
+                    <div class="text-[10px] text-slate-400 font-normal mb-0.5">${d}</div>
+                    <div id="summary-header-day-${d}" class="text-amber-500 font-bold text-[11px]">หยุด</div>
+                </th>`;
+        }
+        
+        thead.innerHTML = `
+            <tr class="bg-slate-800 text-white text-[11px]">
+                <th rowspan="2" class="p-2 text-center min-w-[120px] sticky-col-1 bg-slate-800 border-r-2 border-slate-700">เจ้าหน้าที่</th>
+                <th rowspan="2" class="p-2 text-center min-w-[60px] sticky-col-2 bg-slate-800 border-r border-slate-700">Product</th>
+                <th rowspan="2" class="p-2 text-center min-w-[65px] sticky-col-3 bg-slate-800 text-blue-300 border-r-2 border-slate-700">สรุปรวม</th>
+                <th colspan="${daysInMonth}" class="p-1 text-center bg-slate-700/50 font-medium tracking-wider text-[10px] text-slate-300 border-b border-slate-700">
+                    <i class="far fa-calendar-alt mr-1"></i> รายวันประจำเดือน
+                </th>
+            </tr>
+            <tr class="bg-slate-100 text-slate-700 border-b border-slate-300 shadow-sm">
+                ${thDays}
+            </tr>
+        `;
+    }
+
+    // === 2. ส่วนโครงสร้างแถวข้อมูลพนักงาน (TBODY) ===
     const tbody = document.getElementById('summary-tbody');
     if (!tbody) return;
     tbody.innerHTML = '';
@@ -585,17 +614,6 @@
                     continue;
                 }
                 
-                // ⭐️ แทรกจุดนี้: ตรวจสอบวันหยุดที่อยู่ในแถวสุดท้าย (แถว QC) ในแต่ละคอลัมน์วันที่
-                else if (isFullHoliday(schVal) && pIdx === PRODUCT_MAP.length - 1) {
-                    const tdDay = document.createElement('td'); 
-                    tdDay.id = `summary-shift-${d}`; // มอบ ID สรุปรายวันให้ฟังก์ชัน updateAllCalculatedShifts เข้ามาจัดการต่อ
-                    tdDay.className = "day-cell p-0 text-center text-amber-500 font-bold";
-                    tdDay.style.fontSize = "11px";
-                    tdDay.innerText = "หยุด"; 
-                    tr.appendChild(tdDay);
-                    continue;
-                }
-
                 const tdDay = document.createElement('td'); 
                 tdDay.className = "day-cell p-0";
                 if (schVal.includes('ช่วงเวลา')) tdDay.classList.add('watermark-cell');
@@ -622,9 +640,10 @@
             tbody.appendChild(tr);
         });
     });
+
     updatePendingBadge();
     
-    // ⭐️ แทรกคำสั่งอัปเดตบรรทัดสุดท้ายก่อนปิดฟังก์ชัน เพื่อให้คำนวณและเกลี่ยตัวอักษรลงตารางทันทีหลังวาดโครงสร้างเสร็จ
+    // ⭐️ เรียกอัปเดตกะงานหลักลงบนหัวตารางทันทีหลังวาดตารางเสร็จ
     if (typeof updateAllCalculatedShifts === 'function') {
         updateAllCalculatedShifts();
     }
@@ -1094,21 +1113,42 @@ function updateDailyShiftFromSchedule() {
 }
 
 function updateAllCalculatedShifts() {
-    // โครงสร้างดึงแถวตารางงานทีมเดือนปัจจุบันมาประมวลผล (อิงตาม tbody id ของคุณ)
+    // 1. ดึงข้อมูลหัวตารางและแถวพนักงานจาก "ตารางงานทีมเดือนปัจจุบัน" (ตารางบน)
+    const scheduleHeaders = document.querySelectorAll('#schedule-thead th');
     const scheduleRows = document.querySelectorAll('#schedule-tbody tr');
     
-    // โครงสร้างย่อยสำหรับหาค่าฐานนิยม (กะที่มีจำนวนมากที่สุด) ในแต่ละคอลัมน์วันที่
     function calculateTopShift(dayNum) {
-        if (scheduleRows.length === 0) return "-";
+        if (scheduleRows.length === 0 || scheduleHeaders.length === 0) return "-";
         
+        // แมปหา index ของคอลัมน์ในตารางงานทีมที่ชื่อตรงกับเลขวันที่ (เช่น "1", "2", "3")
+        let targetCellIndex = -1;
+        scheduleHeaders.forEach((th, idx) => {
+            if (th.innerText.trim() === String(dayNum)) {
+                targetCellIndex = idx;
+            }
+        });
+
+        if (targetCellIndex === -1) return "หยุด";
+
         let shiftCounts = { 'A': 0, 'B': 0, 'C': 0 };
         let hasData = false;
 
+        // นับจำนวนกะในคอลัมน์นั้นๆ จากตารางงานบน
         scheduleRows.forEach(row => {
             const cells = row.querySelectorAll('td');
-            // คอลัมน์ index 0 คือชื่อพนักงาน, index 1 = วันที่ 1, index 2 = วันที่ 2 ...
-            if (cells && cells[dayNum]) {
-                const shiftText = cells[dayNum].innerText.trim().toUpperCase();
+            if (cells && cells[targetCellIndex]) {
+                let shiftText = "";
+                
+                // 💡 จุดแก้ไขสำคัญ: เช็กก่อนว่าตัวอักษรกะงานซ่อนอยู่ใน <input> หรือไม่ (สำหรับโหมดแก้ไข)
+                const inputEl = cells[targetCellIndex].querySelector('input');
+                if (inputEl) {
+                    // ถ้าอยู่ในกล่อง input ให้ดึงค่า value ออกมา
+                    shiftText = inputEl.value.trim().toUpperCase();
+                } else {
+                    // ถ้าเป็นโหมดดูปกติ ให้ดึงข้อความตามปกติ
+                    shiftText = cells[targetCellIndex].innerText.trim().toUpperCase();
+                }
+                
                 if (shiftCounts.hasOwnProperty(shiftText)) {
                     shiftCounts[shiftText]++;
                     hasData = true;
@@ -1116,10 +1156,10 @@ function updateAllCalculatedShifts() {
             }
         });
 
-        // ค้นหาตัวอักษรที่มีกะงานหนาแน่นที่สุดในวันนั้น
         let maxCount = 0;
-        let topShift = "หยุด"; // หากวันนั้นสแกนแล้วไม่มีใครเข้ากะ A B C เลย หรือเป็นวันหยุดพร้อมกันหมด ให้คงคำว่า "หยุด" ไว้
+        let topShift = "หยุด"; 
 
+        // ถ้าเจอ A, B หรือ C จะทำการเลือกกะที่มีจำนวนมากที่สุด
         if (hasData) {
             for (let shift in shiftCounts) {
                 if (shiftCounts[shift] > maxCount) {
@@ -1131,7 +1171,7 @@ function updateAllCalculatedShifts() {
         return topShift;
     }
 
-    // ส่วนที่ 2.1: อัปเดตช่องสรุปรายวันด้านบน (เหนือช่อง QC) ตามวันที่ที่ผู้ใช้กำลังเลือกพิมพ์งาน
+    // 2.1: อัปเดตช่องแก้ไขรายวันแถวสีส้มด้านบนสุด 
     if (typeof currentDay !== 'undefined') {
         const dailyShiftInput = document.getElementById('daily-shift-input');
         if (dailyShiftInput) {
@@ -1139,25 +1179,43 @@ function updateAllCalculatedShifts() {
         }
     }
 
-    // ส่วนที่ 2.2: อัปเดตตารางระบบบันทึกและสรุปยอดงานประจำเดือน ด้านล่างสุด (คอลัมน์ 1 ถึง วันสิ้นเดือน)
+    // 2.2: อัปเดตแทนคำว่า "หยุด" บนหัวตารางสรุปด้านล่างสุด (ค้นหาตรงตัวเลขเป๊ะๆ)
     if (typeof daysInMonth !== 'undefined') {
-        for (let d = 1; d <= daysInMonth; d++) {
-            const dayTopShift = calculateTopShift(d);
-            
-            // ค้นหาช่องแสดงสถานะวันในตารางสรุปด้านล่าง
-            const summaryCell = document.getElementById(`summary-shift-${d}`);
-            if (summaryCell) {
-                summaryCell.innerText = dayTopShift;
+        const summaryThs = document.querySelectorAll('#summary-table thead th');
+        
+        summaryThs.forEach(thCell => {
+            const firstDiv = thCell.querySelector('div');
+            if (firstDiv) {
+                const dayText = firstDiv.innerText.trim();
+                const dayNum = parseInt(dayText, 10);
                 
-                // ตกแต่งเพิ่มเติม: ถ้าเป็นกะงานหลัก ให้เปลี่ยนสีตัวอักษรให้เด่นขึ้น (เลือกปรับเปลี่ยนตามสี UI ได้ครับ)
-                if (dayTopShift !== 'หยุด' && dayTopShift !== '-') {
-    // 💡 หากต้องการให้เป็นสีน้ำเงินเด่นแบบไม่มีกล่องไฮไลท์สีฟ้า ให้ใช้คลาสบรรทัดล่างนี้แทนครับ:
-    summaryCell.className = "text-center font-bold text-blue-600"; 
-} else {
-    summaryCell.className = "text-center text-amber-500 font-bold";
-}
+                // ตรวจสอบว่านี่คือคอลัมน์ตัวเลขวันที่ 1 ถึงสิ้นเดือน
+                if (!isNaN(dayNum) && dayNum >= 1 && dayNum <= daysInMonth) {
+                    
+                    const dayTopShift = calculateTopShift(dayNum);
+                    
+                    const innerElements = thCell.querySelectorAll('div, span');
+                    let textTarget = null;
+
+                    innerElements.forEach(el => {
+                        const txt = el.innerText.trim();
+                        if (txt === 'หยุด' || txt === 'A' || txt === 'B' || txt === 'C' || txt === '-') {
+                            textTarget = el;
+                        }
+                    });
+
+                    // หยอดอักษรกะงานหลักที่ถูกต้องลงไปแทน
+                    if (textTarget) {
+                        textTarget.innerText = dayTopShift;
+                        if (dayTopShift !== 'หยุด' && dayTopShift !== '-') {
+                            textTarget.className = "text-center font-bold text-blue-500 text-[11px]"; 
+                        } else {
+                            textTarget.className = "text-center text-amber-500 font-bold text-[11px]";
+                        }
+                    }
+                }
             }
-        }
+        });
     }
 }
     </script>
