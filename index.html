@@ -569,6 +569,8 @@
                 const key = getKey(staff.id, prod.id, d);
                 const val = masterData[key] || '';
                 const isPending = masterData[key + "_PENDING"] === true;
+                
+                // ถ้ารออนุมัติ ให้เป็นสีแดงตัวหนา
                 const textColorClass = isPending ? 'text-red-600 font-bold' : ''; 
 
                 if (isSupervisorMode) {
@@ -578,7 +580,7 @@
                             class="w-full h-full text-center text-[11px] focus:outline-none border-none p-1 cursor-pointer ${textColorClass}"
                             value="${val}"
                             oninput="updateDataFromSummary(${staff.id}, ${prod.id}, ${d}, this.value)"
-                            onclick="checkAndConfirmPending(${staff.id}, ${prod.id}, ${d}, this)">`; // <-- เพิ่มบรรทัดนี้
+                            onclick="checkAndConfirmPending('${key}', this)">`; // หัวหน้าคลิกเพื่อยืนยันได้
                 } else {
                     tdDay.innerHTML = `<span class="${textColorClass}" style="font-size: 11px;">${val || '0'}</span>`;
                 }
@@ -589,15 +591,16 @@
     });
 }
 
-function checkAndConfirmPending(staffId, prodId, day, el) {
-    if (!isSupervisorMode) return; // ถ้าไม่ใช่หัวหน้า กดแล้วไม่มีอะไรเกิดขึ้น
+// วางฟังก์ชันนี้ไว้ใต้ renderSummaryTable
+function checkAndConfirmPending(key, el) {
+    if (!isSupervisorMode) return; 
     
-    const key = getKey(staffId, prodId, day);
     if (masterData[key + "_PENDING"]) {
+        // ให้หัวหน้ากดยืนยันยอด
         if (confirm("ยอดนี้มีการแก้ไขใหม่\nคุณต้องการ 'ยืนยัน' ว่ายอดนี้ถูกต้องใช่หรือไม่?\n\n(กด OK เพื่อยืนยันและล้างสีแดงออก)")) {
             delete masterData[key + "_PENDING"];
-            el.classList.remove('text-red-600', 'font-bold');
-            syncData(true); // เซฟขึ้น Cloud ทันที
+            el.classList.remove('text-red-600', 'font-bold'); // ลบสีแดง
+            syncData(true); // บันทึกขึ้น Cloud
         }
     }
 }
@@ -744,25 +747,22 @@ function saveDailyData() {
     let staffToUpdateSchedule = []; 
     let currentShift = document.getElementById('daily-shift-input').value.trim().toUpperCase();
 
+    // 1. เช็ควันหยุด
     STAFF_MAP.forEach(staff => {
         let status = getScheduleVal(currentYear, currentMonth, currentDay, staff.id) || '';
         let hasEnteredData = false;
-
         PRODUCT_MAP.forEach(prod => {
-            const inputVal = document.getElementById(`input-${staff.id}-${prod.id}`).value;
-            if (inputVal !== "") hasEnteredData = true;
+            if (document.getElementById(`input-${staff.id}-${prod.id}`).value !== "") hasEnteredData = true;
         });
-
         if (isFullHoliday(status) && hasEnteredData) {
             staffToUpdateSchedule.push(staff);
         }
     });
 
+    // 2. แจ้งเตือนสลับวันหยุด
     if (staffToUpdateSchedule.length > 0) {
         let names = staffToUpdateSchedule.map(s => s.nickName).join(", ");
-        let message = `พนักงาน (${names}): เนื่องจากวันนี้เป็นวันหยุด มีการกดบันทึกยอด เพราะมีการสลับวันหยุดกับเพื่อนหรือไม่?\n\n(หากกดยืนยัน ระบบจะเปลี่ยนตารางงานวันนี้เป็นวันทำงานกะ ${currentShift || 'A'} ให้โดยอัตโนมัติ)`;
-        
-        if (confirm(message)) {
+        if (confirm(`พนักงาน (${names}): เนื่องจากวันนี้เป็นวันหยุด มีการกดบันทึกยอด เพราะมีการสลับวันหยุดกับเพื่อนหรือไม่?\n\n(หากกดยืนยัน ระบบจะเปลี่ยนตารางงานวันนี้เป็นวันทำงานกะ ${currentShift || 'A'} ให้อัตโนมัติ)`)) {
             staffToUpdateSchedule.forEach(staff => {
                 masterData[getScheduleKey(currentYear, currentMonth, currentDay, staff.id)] = currentShift || 'A';
             });
@@ -771,8 +771,18 @@ function saveDailyData() {
         }
     }
 
-    const isDayAlreadySaved = !!masterData[getShiftKey(currentDay)];
+    // 3. เช็คว่า "วันนี้" เคยถูกกดบันทึกยอดไปแล้วหรือยัง (ดูว่าเคยมีข้อมูลอะไรเซฟไว้ไหม)
+    let isDayAlreadySaved = false;
+    STAFF_MAP.forEach(staff => {
+        PRODUCT_MAP.forEach(prod => {
+            let v = masterData[getKey(staff.id, prod.id, currentDay)];
+            if (v !== undefined && v !== "" && v !== 0 && v !== "0") {
+                isDayAlreadySaved = true;
+            }
+        });
+    });
 
+    // 4. บันทึกและดักจับการแก้ซ้ำ
     STAFF_MAP.forEach(staff => {
         PRODUCT_MAP.forEach(prod => {
             const inputEl = document.getElementById(`input-${staff.id}-${prod.id}`);
@@ -781,16 +791,18 @@ function saveDailyData() {
             const oldValue = masterData[key];
             const pendingKey = key + "_PENDING";
 
-            // แปลงค่าเก่าที่ว่างเปล่าหรือเป็น 0 ให้กลายเป็น "" เพื่อให้เปรียบเทียบได้ถูกต้อง (แก้ปัญหาข้อ 3)
+            // ปรับค่าเก่าให้เทียบง่ายขึ้น (ถ้าว่างเปล่าหรือ 0 ให้ถือว่าเป็น "")
             const oldValStr = (oldValue === undefined || oldValue === 0 || oldValue === "0") ? "" : oldValue.toString();
 
+            // ถ้าไม่ใช่หัวหน้า + วันนั้นเคยบันทึกไปแล้ว + ค่าเปลี่ยนไปจากเดิม (แม้จากช่องว่าง)
             if (!isSupervisorMode && isDayAlreadySaved && oldValStr !== newValue && newValue !== "") {
                 const label = (prod.label || '').toUpperCase();
                 if (label.includes('ML') || label.includes('MN') || label.includes('RCF') || label.includes('RECONFIRM')) {
-                    masterData[pendingKey] = true; 
+                    masterData[pendingKey] = true; // ตั้งค่ารออนุมัติ (ตัวแดง)
                 }
             } 
             
+            // ถ้าหัวหน้ากดบันทึก = อนุมัติยอด (ลบตัวแดง)
             if (isSupervisorMode) {
                 delete masterData[pendingKey];
             }
@@ -799,15 +811,11 @@ function saveDailyData() {
         });
     });
 
-    masterData[getShiftKey(currentDay)] = currentShift;
+    // บันทึกกะงานหลัก
+    masterData[getShiftKey(currentDay)] = currentShift || 'A';
 
-    if (isSupervisorMode) {
-        STAFF_MAP.forEach(staff => {
-            PRODUCT_MAP.forEach(prod => {
-                delete masterData[getKey(staff.id, prod.id, currentDay) + "_PENDING"];
-            });
-        });
-    }
+    syncData(true); 
+}
 
     syncData(true); 
     renderSummaryTable(); 
@@ -847,15 +855,20 @@ document.addEventListener('input', function(e) {
         let idParts = e.target.id.split('-');
         let staffId = parseInt(idParts[1]);
         let prodId = parseInt(idParts[2]);
-        let newValue = e.target.value;
+        let newValue = e.target.value.trim();
         let key = getKey(staffId, prodId, currentDay);
         let pendingKey = key + "_PENDING"; 
         let oldValue = masterData[key];
         
-        const isDayAlreadySaved = !!masterData[getShiftKey(currentDay)];
-        const prod = PRODUCT_MAP.find(p => p.id === prodId);
+        let isDayAlreadySaved = false;
+        STAFF_MAP.forEach(s => {
+            PRODUCT_MAP.forEach(p => {
+                let v = masterData[getKey(s.id, p.id, currentDay)];
+                if (v !== undefined && v !== "" && v !== 0 && v !== "0") isDayAlreadySaved = true;
+            });
+        });
 
-        // แปลงค่าเก่าให้เปรียบเทียบง่ายขึ้น (ถ้าเป็น undefined หรือ 0 จะกลายเป็น "")
+        const prod = PRODUCT_MAP.find(p => p.id === prodId);
         const oldValStr = (oldValue === undefined || oldValue === 0 || oldValue === "0") ? "" : oldValue.toString();
 
         if (prod && !isSupervisorMode && isDayAlreadySaved && oldValStr !== newValue && newValue !== "") {
@@ -867,11 +880,11 @@ document.addEventListener('input', function(e) {
             delete masterData[pendingKey];
         }
 
-        masterData[key] = newValue;
-        syncData(false); 
+        masterData[key] = (newValue === "") ? 0 : parseInt(newValue);
+        syncData(false); // เซฟลงเครื่อง
+        renderSummaryTable(); // สั่งให้อัปเดตตารางโชว์สีแดงทันที
     }
 });
-
 
 // ฟังก์ชันจัดการการวางข้อมูล (Paste)
         document.addEventListener('paste', function(e) {
