@@ -218,16 +218,10 @@
                                     <th class="text-[10px] border-t-0">กะงาน</th>
                                     <th class="cell-a w-14 rounded-tr-xl border-r-0 border-t-0" style="padding: 0;">
                                         <div class="flex items-center justify-center gap-2">
-    <div class="flex flex-col sm:flex-row items-center justify-center gap-1.5 p-1">
-    <div class="flex items-center bg-white/80 border border-amber-300 rounded-lg px-1.5 py-0.5 shadow-sm">
-        <span class="text-[10px] text-amber-800 font-bold mr-1">คีย์:</span>
-        <input type="text" id="daily-shift-input" class="w-7 text-center bg-transparent outline-none text-base font-bold text-[#78350f]" placeholder="-">
-    </div>
+    					<div class="flex items-center justify-center gap-1.5 w-full">
+    <input type="text" id="daily-shift-input" class="w-10 text-center bg-transparent outline-none text-xl font-bold text-[#78350f]" placeholder="-">
     
-    <div class="flex items-center bg-orange-100 border border-orange-400 rounded-lg px-1.5 py-0.5 shadow-sm">
-        <span class="text-[10px] text-orange-700 font-bold mr-1">กะทีม:</span>
-        <input type="text" id="team-shift-display" class="w-5 text-center bg-transparent outline-none text-base font-bold text-orange-800 cursor-not-allowed" readonly placeholder="-">
-    </div>
+    <input type="text" id="team-shift-display" class="w-14 text-center bg-orange-500 text-white rounded-lg outline-none text-base font-bold cursor-not-allowed py-0.5 shadow-sm" readonly placeholder="หยุด">
 </div>
                                     </th>
                                 </tr>
@@ -419,11 +413,15 @@
     document.getElementById('display-date-label').textContent = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
     document.getElementById('dashboard-subtitle').textContent = `ระบบบันทึกและสรุปยอดงานประจำเดือน ${thaiMonths[currentMonth]} ${currentYear}`;
     document.getElementById('summary-table-header').textContent = `ระบบบันทึกและสรุปยอดงานประจำเดือน ${thaiMonths[currentMonth]} ${currentYear}`;
+    
     const currentShiftVal = masterData[getShiftKey(currentDay)] || '';
     document.getElementById('daily-shift-input').value = currentShiftVal;
     
+    // แสดงเฉพาะตัวอักษรกะงาน หรือคำว่า "หยุด" เพียงอย่างเดียวในช่องสีส้ม
     const teamShiftEl = document.getElementById('team-shift-display');
-    if (teamShiftEl) teamShiftEl.value = currentShiftVal || '-';
+    if (teamShiftEl) {
+        teamShiftEl.value = (currentShiftVal === '' || currentShiftVal === 'หยุด') ? 'หยุด' : currentShiftVal;
+    }
 }
 
         async function fetchFromCloud() {
@@ -701,22 +699,24 @@ function updateDataFromSummary(staffId, prodId, day, value) {
         th.className = "day-cell bg-slate-700 text-white p-1 text-center min-w-[45px]";
         
         const shift = masterData[getShiftKey(i)] || '';
+        // หากไม่มีข้อมูลกะ หรือระบุเป็นค่าว่าง/หยุด ให้แสดงคำว่า "หยุด"
+        const displayShift = (shift === '' || shift === 'หยุด') ? 'หยุด' : shift;
         
-        // ถ้าเป็นโหมด Sup/Supervisor ให้แสดงเป็นช่อง Input พิมพ์แก้ไขกะงานใต้ตัวเลขวันที่ได้เลย
         if (isSupervisorMode) {
+            // โหมดแก้ไข: แสดงเป็นช่องให้พิมพ์แก้ไขกะงานของวันนั้นๆ ได้โดยตรง
             th.innerHTML = `
                 <div class="text-xs font-bold mb-0.5">${i}</div>
                 <input type="text" 
-                       class="w-full text-center bg-slate-800 text-amber-400 font-bold text-[11px] rounded border border-slate-600 focus:border-amber-400 focus:outline-none p-0.5" 
-                       value="${shift}" 
-                       placeholder="-"
+                       class="w-full text-center bg-orange-100 text-orange-900 font-bold text-[11px] rounded border border-orange-400 focus:outline-none p-0.5" 
+                       value="${displayShift}" 
+                       placeholder="หยุด"
                        oninput="updateShiftFromSummary(${i}, this.value)">
             `;
         } else {
-            // โหมดพนักงานปกติ ให้แสดงเป็นข้อความอ่านได้อย่างเดียวเหมือนเดิม
+            // โหมดปกติ: แสดงเฉพาะตัวอักษรกะงาน หรือคำว่า "หยุด" โดดๆ ไม่มีวงเล็บ
             th.innerHTML = `
                 <div class="text-xs font-bold">${i}</div>
-                ${shift ? `<span class="text-[10px] text-amber-400 font-bold">(${shift})</span>` : '<span class="text-[10px] text-slate-500">-</span>'}
+                <span class="text-[10px] text-amber-400 font-bold">${displayShift}</span>
             `;
         }
         row.appendChild(th);
@@ -728,20 +728,21 @@ function updateShiftFromSummary(day, value) {
     if (!isSupervisorMode) return;
     const cleanValue = value.trim().toUpperCase();
     
-    // บันทึกกะงานลงฐานข้อมูล
+    // บันทึกค่าลงฐานข้อมูล
     masterData[getShiftKey(day)] = cleanValue;
     
-    // ถ้าแก้ไขตรงกับวันที่กำลังเลือกอยู่ด้านบน ให้ช่องด้านบนอัปเดตตามด้วยทันที
+    // ถ้าตัวที่แก้ ตรงกับวันที่กำลังเลือกดูอยู่ ให้ช่องกรอกด้านบนและช่องสีส้มเปลี่ยนตามทันที
     if (day === currentDay) {
         const dailyShiftInput = document.getElementById('daily-shift-input');
         if (dailyShiftInput) dailyShiftInput.value = cleanValue;
         
         const teamShiftDisplay = document.getElementById('team-shift-display');
-        if (teamShiftDisplay) teamShiftDisplay.value = cleanValue || '-';
+        if (teamShiftDisplay) {
+            teamShiftDisplay.value = (cleanValue === '' || cleanValue === 'หยุด') ? 'หยุด' : cleanValue;
+        }
     }
     
-    // ซิงค์ข้อมูลขึ้น Cloud (เซฟแบบเบื้องหลังไม่ให้หน้าจอกระตุก)
-    syncData(false);
+    syncData(false); // เซฟลงระบบคลาวด์เบื้องหลัง
 }
         function renderInputTable() {
         const tbody = document.getElementById('input-tbody');
