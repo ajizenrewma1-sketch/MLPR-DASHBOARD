@@ -437,100 +437,38 @@
         }
 
         function syncData(pushToCloud = false) {
-            localStorage.setItem('mlpr_v5_final', JSON.stringify(masterData));
-            if (!pushToCloud) return;
-            clearTimeout(syncTimer);
-            showToast("กำลังซิงค์...", "yellow");
-            syncTimer = setTimeout(async () => {
-                try {
-                    await fetch(CLOUD_URL, { 
-                        method: 'POST', 
-                        headers: {
-                            // เพิ่ม Header text/plain เพื่อให้ส่งข้อมูลผ่าน Google Apps Script ได้โดยไม่ติด CORS
-                            'Content-Type': 'text/plain;charset=utf-8' 
-                        },
-                        body: JSON.stringify(masterData) 
-                    });
-                    showToast("อัปเดตข้อมูลขึ้น Cloud สำเร็จ", "green");
-                } catch(e) { 
-                    console.error(e);
-                    showToast("เชื่อมต่อล้มเหลว", "red"); 
-                }
-            }, 800); 
-        }
-
-        function saveDailyData() {
-    let staffToUpdateSchedule = []; 
-    let currentShift = document.getElementById('daily-shift-input').value.trim().toUpperCase();
-
-    // --- ส่วนของข้อ 3: ตรวจสอบพนักงานที่ลงยอดในวันหยุด ---
-    STAFF_MAP.forEach(staff => {
-        let status = getScheduleVal(currentYear, currentMonth, currentDay, staff.id);
-        let hasEnteredData = false;
-        PRODUCT_MAP.forEach(prod => {
-            const inputVal = document.getElementById(`input-${staff.id}-${prod.id}`).value;
-            if (inputVal !== "") hasEnteredData = true;
-        });
-        if (isFullHoliday(status) && hasEnteredData) staffToUpdateSchedule.push(staff);
-    });
-
-    if (staffToUpdateSchedule.length > 0) {
-        let names = staffToUpdateSchedule.map(s => s.nickName).join(", ");
-        let message = `พนักงาน (${names}): เนื่องจากวันนี้เป็นวันหยุด มีการกดบันทึกยอด เพราะมีการสลับวันหยุดกับเพื่อนหรือไม่?\n\n(หากกดยืนยัน ระบบจะเปลี่ยนตารางงานเป็นกะ ${currentShift || 'A'} ให้อัตโนมัติ)`;
-        if (confirm(message)) {
-            staffToUpdateSchedule.forEach(staff => {
-                masterData[getScheduleKey(currentYear, currentMonth, currentDay, staff.id)] = currentShift || 'A';
+    localStorage.setItem('mlpr_v5_final', JSON.stringify(masterData));
+    if (!pushToCloud) return;
+    clearTimeout(syncTimer);
+    showToast("กำลังซิงค์...", "yellow");
+    syncTimer = setTimeout(async () => {
+        try {
+            await fetch(CLOUD_URL, { 
+                method: 'POST', 
+                headers: {
+                    // เพิ่ม Header text/plain เพื่อให้ส่งข้อมูลผ่าน Google Apps Script ได้โดยไม่ติด CORS
+                    'Content-Type': 'text/plain;charset=utf-8' 
+                },
+                body: JSON.stringify(masterData) 
             });
-        } else { return; }
-    }
+            showToast("อัปเดตข้อมูลขึ้น Cloud สำเร็จ", "green");
 
-    // --- ส่วนของข้อ 4: บันทึกยอดและดักจับการแก้ไขซ้ำ (ฝังสถานะลง Cloud) ---
-    STAFF_MAP.forEach(staff => {
-        PRODUCT_MAP.forEach(prod => {
-            const inputEl = document.getElementById(`input-${staff.id}-${prod.id}`);
-            const newValue = inputEl.value.trim();
-            const key = getKey(staff.id, prod.id, currentDay);
-            const pendingKey = key + "_PENDING"; // สร้าง Key พิเศษสำหรับเก็บสถานะสีแดง
-            
-            const oldValue = masterData[key];
-
-            // ตรวจสอบเงื่อนไขตัวแดง (ไม่ใช่ Sup + มีค่าเดิมอยู่แล้ว + ค่าใหม่ไม่เท่าค่าเดิม)
-            if (!isSupervisorMode && oldValue !== undefined && oldValue !== "" && oldValue !== 0 && oldValue != newValue && newValue !== "") {
-                // เช็คเฉพาะช่อง MLPR(1), MNPR(2), Reconfirm(3)
-                if (prod.id === 1 || prod.id === 2 || prod.id === 3) {
-                    masterData[pendingKey] = true; // บันทึกสถานะ "รออนุมัติ" ลงใน masterData เลย
-                }
-            } 
-            
-            // ถ้าเป็น Supervisor มาบันทึก ให้ล้างสถานะตัวแดงของช่องนั้นออก (ถือว่ายืนยันแล้ว)
-            if (isSupervisorMode) {
-                delete masterData[pendingKey];
+            // --- ส่วนของข้อ 2: ดึงข้อมูลล่าสุดมาแสดงทันทีหลังจากบันทึกลง Cloud สำเร็จ ---
+            // โค้ดส่วนนี้จะช่วยสั่งให้โปรแกรมดึงข้อมูลล่าสุดกลับมาโหลดหน้าจอใหม่เองอัตโนมัติ
+            if (typeof loadCloudData === 'function') {
+                await loadCloudData();
+            } else if (typeof fetchData === 'function') {
+                await fetchData();
+            } else if (typeof loadData === 'function') {
+                await loadData();
             }
+            // ------------------------------------------------------------------
 
-            masterData[key] = (newValue === "") ? 0 : parseInt(newValue);
-        });
-    });
-
-    // บันทึกกะงานหลัก
-    masterData[getShiftKey(currentDay)] = currentShift;
-
-    // *** เพิ่มเติม: ถ้าเป็น Sup กดบันทึก ให้ล้างสถานะตัวแดงทั้งหมดของวันที่เลือก (เผื่อมีการแก้ไขหลายช่อง) ***
-    if (isSupervisorMode) {
-        STAFF_MAP.forEach(staff => {
-            PRODUCT_MAP.forEach(prod => {
-                delete masterData[getKey(staff.id, prod.id, currentDay) + "_PENDING"];
-            });
-        });
-    }
-
-    // ซิงค์ขึ้น Cloud
-    syncData(true); 
-    renderSummaryTable(); 
-    renderDateHeaders(); 
-    renderInputTable(); 
-    renderScheduleTable();
-    
-    showToast("บันทึกข้อมูลเรียบร้อยแล้ว", "green");
+        } catch(e) { 
+            console.error(e);
+            showToast("เชื่อมต่อล้มเหลว", "red"); 
+        }
+    }, 800); 
 }
 
         function renderScheduleTable() {
@@ -777,9 +715,88 @@ function updateDataFromSummary(staffId, prodId, day, value) {
 
         window.onload = function() { setupDatePicker(); fetchFromCloud(); };
 function saveDailyData() {
-    // สั่งให้ส่งข้อมูลจากเครื่องขึ้น Cloud ทันที
+    let staffToUpdateSchedule = []; // เก็บรายชื่อเฉพาะคนที่ลงยอดในวันหยุด
+    let currentShift = document.getElementById('daily-shift-input').value.trim().toUpperCase();
+
+    // 1. ตรวจสอบว่ามีพนักงานคนไหนบ้างที่ลงยอดในวันหยุดตัวเอง
+    STAFF_MAP.forEach(staff => {
+        let status = getScheduleVal(currentYear, currentMonth, currentDay, staff.id) || '';
+        let hasEnteredData = false;
+
+        PRODUCT_MAP.forEach(prod => {
+            const inputVal = document.getElementById(`input-${staff.id}-${prod.id}`).value;
+            if (inputVal !== "") {
+                hasEnteredData = true;
+            }
+        });
+
+        if (isFullHoliday(status) && hasEnteredData) {
+            staffToUpdateSchedule.push(staff);
+        }
+    });
+
+    // --- ส่วนของเงื่อนไขแจ้งเตือนวันหยุด ---
+    if (staffToUpdateSchedule.length > 0) {
+        let names = staffToUpdateSchedule.map(s => s.nickName).join(", ");
+        let message = `พนักงาน (${names}): เนื่องจากวันนี้เป็นวันหยุด มีการกดบันทึกยอด เพราะมีการสลับวันหยุดกับเพื่อนหรือไม่?\n\n(หากกดยืนยัน ระบบจะเปลี่ยนตารางงานวันนี้เป็นวันทำงานกะ ${currentShift || 'A'} ให้โดยอัตโนมัติ)`;
+        
+        if (confirm(message)) {
+            staffToUpdateSchedule.forEach(staff => {
+                masterData[getScheduleKey(currentYear, currentMonth, currentDay, staff.id)] = currentShift || 'A';
+            });
+        } else {
+            // ถ้าพนักงานกดยกเลิก (Cancel) จะหยุดทำงานทันที ไม่เซฟและไม่เปลี่ยนค่าใดๆ
+            return; 
+        }
+    }
+
+    // --- ส่วนของเงื่อนไขการบันทึกยอด และตรวจสอบการแก้ไขซ้ำ (ตัวแดงฝังขึ้น Cloud) ---
+    STAFF_MAP.forEach(staff => {
+        PRODUCT_MAP.forEach(prod => {
+            const inputEl = document.getElementById(`input-${staff.id}-${prod.id}`);
+            const newValue = inputEl.value.trim();
+            const key = getKey(staff.id, prod.id, currentDay);
+            const oldValue = masterData[key];
+            const pendingKey = key + "_PENDING";
+
+            // ตรวจสอบเงื่อนไขตัวแดง: ไม่ใช่ Sup + มีค่าเดิมอยู่แล้ว + ค่าใหม่ไม่เท่ากับค่าเดิม
+            if (!isSupervisorMode && oldValue !== undefined && oldValue !== "" && oldValue != newValue && newValue !== "") {
+                const label = (prod.label || '').toUpperCase();
+                // ตรวจจับเฉพาะกลุ่มคอลัมน์ ML, MN, RCF หรือ Reconfirm ตามชื่อย่อรายการ
+                if (label.includes('ML') || label.includes('MN') || label.includes('RCF') || label.includes('RECONFIRM')) {
+                    masterData[pendingKey] = true; // ฝังสถานะตัวแดงส่งขึ้น Cloud ทันที
+                }
+            } 
+            
+            // ถ้าหัวหน้างาน (Sup) มาเป็นคนกดบันทึก จะล้างสถานะตัวแดงของช่องนั้นออก (อนุมัติยอด)
+            if (isSupervisorMode) {
+                delete masterData[pendingKey];
+            }
+
+            masterData[key] = (newValue === "") ? 0 : parseInt(newValue);
+        });
+    });
+
+    // บันทึกกะงานหลักประจำวัน
+    masterData[getShiftKey(currentDay)] = currentShift;
+
+    // ล้างสถานะตัวแดงของวันนั้นทั้งหมดเพื่อความชัวร์ หากกดบันทึกในโหมดแก้ไข (Sup Mode)
+    if (isSupervisorMode) {
+        STAFF_MAP.forEach(staff => {
+            PRODUCT_MAP.forEach(prod => {
+                delete masterData[getKey(staff.id, prod.id, currentDay) + "_PENDING"];
+            });
+        });
+    }
+
+    // ซิงค์ข้อมูลขึ้น Cloud และอัปเดตหน้าจอเบื้องต้น
     syncData(true); 
-    showToast("บันทึกข้อมูลลง Cloud สำเร็จ", "green");
+    renderSummaryTable(); 
+    renderDateHeaders(); 
+    renderInputTable(); 
+    renderScheduleTable();
+    
+    showToast("บันทึกข้อมูลและอัปเดตสถานะเรียบร้อยแล้ว", "green");
 }
 // ฟังก์ชันสำหรับจัดการการกดปุ่มลูกศรเพื่อเลื่อนช่องกรอกข้อมูล
         function handleArrowKeys(e, staffId, prodId) {
