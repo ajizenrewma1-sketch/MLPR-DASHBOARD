@@ -523,70 +523,83 @@
         }
 
  function renderSummaryTable() {
-        const tbody = document.getElementById('summary-tbody');
-        tbody.innerHTML = '';
-        
-        STAFF_MAP.forEach(staff => {
-            PRODUCT_MAP.forEach((prod, pIdx) => {
-                const tr = document.createElement('tr');
-                if (pIdx === PRODUCT_MAP.length - 1) tr.className = "staff-divider";
+    const tbody = document.getElementById('summary-tbody');
+    tbody.innerHTML = '';
+    
+    STAFF_MAP.forEach(staff => {
+        PRODUCT_MAP.forEach((prod, pIdx) => {
+            const tr = document.createElement('tr');
+            if (pIdx === PRODUCT_MAP.length - 1) tr.className = "staff-divider";
+            
+            if (pIdx === 0) {
+                const tdName = document.createElement('td'); 
+                tdName.rowSpan = PRODUCT_MAP.length; 
+                tdName.className = `sticky-col-1 ${staff.class} border-r-2`;
+                tdName.innerHTML = `<div class="p-2"><strong>${staff.fullName}</strong><br><span class="text-xs opacity-60">(${staff.nickName})</span></div>`; 
+                tr.appendChild(tdName);
+            }
+
+            tr.innerHTML += `
+                <td class="sticky-col-2 ${prod.label === 'QC' ? 'qc-text' : ''} bg-white/90">${prod.label}</td>
+                <td class="sticky-col-3 font-bold text-blue-600">${calculateSum(staff.id, prod.id) || '0'}</td>`;
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const schVal = getScheduleVal(currentYear, currentMonth, d, staff.id) || ''; 
                 
-                if (pIdx === 0) {
-                    const tdName = document.createElement('td'); 
-                    tdName.rowSpan = PRODUCT_MAP.length; 
-                    tdName.className = `sticky-col-1 ${staff.class} border-r-2`;
-                    tdName.innerHTML = `<div class="p-2"><strong>${staff.fullName}</strong><br><span class="text-xs opacity-60">(${staff.nickName})</span></div>`; 
-                    tr.appendChild(tdName);
+                if (isFullHoliday(schVal) && pIdx < PRODUCT_MAP.length - 1) {
+                    if (pIdx === 0) {
+                        const tdHol = document.createElement('td'); 
+                        tdHol.rowSpan = PRODUCT_MAP.length - 1; 
+                        let label = ""; let cls = "";
+                        if (schVal === 'หยุด') { label = "วันหยุดประจำสัปดาห์"; cls = "holiday-weekly"; }
+                        else if (schVal === 'ลา') { label = "วันหยุดพักร้อน"; cls = "holiday-leave"; }
+                        else if (schVal.includes('สลับ')) { label = "สลับวันหยุดกับเพื่อน"; cls = "holiday-swap"; }
+
+                        tdHol.className = `day-cell ${cls} font-bold`; 
+                        tdHol.innerHTML = `<span class="vertical-text" style="font-size: 10px;">${label}</span>`;
+                        tr.appendChild(tdHol);
+                    }
+                    continue;
                 }
 
-                tr.innerHTML += `
-                    <td class="sticky-col-2 ${prod.label === 'QC' ? 'qc-text' : ''} bg-white/90">${prod.label}</td>
-                    <td class="sticky-col-3 font-bold text-blue-600">${calculateSum(staff.id, prod.id) || '0'}</td>`;
+                const tdDay = document.createElement('td'); 
+                tdDay.className = "day-cell p-0";
+                if (schVal.includes('ช่วงเวลา')) tdDay.classList.add('watermark-cell');
 
-                for (let d = 1; d <= daysInMonth; d++) {
-                    const schVal = getScheduleVal(currentYear, currentMonth, d, staff.id) || ''; // ป้องกัน Error
-                    
-                    if (isFullHoliday(schVal) && pIdx < PRODUCT_MAP.length - 1) {
-                        if (pIdx === 0) {
-                            const tdHol = document.createElement('td'); 
-                            tdHol.rowSpan = PRODUCT_MAP.length - 1; 
-                            let label = ""; let cls = "";
-                            if (schVal === 'หยุด') { label = "วันหยุดประจำสัปดาห์"; cls = "holiday-weekly"; }
-                            else if (schVal === 'ลา') { label = "วันหยุดพักร้อน"; cls = "holiday-leave"; }
-                            else if (schVal.includes('สลับ')) { label = "สลับวันหยุดกับเพื่อน"; cls = "holiday-swap"; }
+                const key = getKey(staff.id, prod.id, d);
+                const val = masterData[key] || '';
+                const isPending = masterData[key + "_PENDING"] === true;
+                const textColorClass = isPending ? 'text-red-600 font-bold' : ''; 
 
-                            tdHol.className = `day-cell ${cls} font-bold`; 
-                            tdHol.innerHTML = `<span class="vertical-text" style="font-size: 10px;">${label}</span>`;
-                            tr.appendChild(tdHol);
-                        }
-                        continue;
-                    }
-
-                    const tdDay = document.createElement('td'); 
-                    tdDay.className = "day-cell p-0";
-                    if (schVal.includes('ช่วงเวลา')) tdDay.classList.add('watermark-cell');
-
-                    const key = getKey(staff.id, prod.id, d);
-                    const val = masterData[key] || '';
-                    const isPending = masterData[key + "_PENDING"] === true;
-                    const textColorClass = isPending ? 'text-red-600 font-bold' : ''; 
-
-                    if (isSupervisorMode) {
-                        const inputId = `summary-${staff.id}-${prod.id}-${d}`;
-                        tdDay.innerHTML = `
-                            <input type="number" id="${inputId}" 
-                                class="w-full h-full text-center text-[11px] focus:outline-none border-none p-1 ${textColorClass}"
-                                value="${val}"
-                                oninput="updateDataFromSummary(${staff.id}, ${prod.id}, ${d}, this.value)">`;
-                    } else {
-                        tdDay.innerHTML = `<span class="${textColorClass}" style="font-size: 11px;">${val || '0'}</span>`;
-                    }
-                    tr.appendChild(tdDay);
+                if (isSupervisorMode) {
+                    const inputId = `summary-${staff.id}-${prod.id}-${d}`;
+                    tdDay.innerHTML = `
+                        <input type="number" id="${inputId}" 
+                            class="w-full h-full text-center text-[11px] focus:outline-none border-none p-1 cursor-pointer ${textColorClass}"
+                            value="${val}"
+                            oninput="updateDataFromSummary(${staff.id}, ${prod.id}, ${d}, this.value)"
+                            onclick="checkAndConfirmPending(${staff.id}, ${prod.id}, ${d}, this)">`;
+                } else {
+                    tdDay.innerHTML = `<span class="${textColorClass}" style="font-size: 11px;">${val || '0'}</span>`;
                 }
-                tbody.appendChild(tr);
-            });
+                tr.appendChild(tdDay);
+            }
+            tbody.appendChild(tr);
         });
+    });
+}
+
+function updateDataFromSummary(staffId, prodId, day, value) {
+    const key = getKey(staffId, prodId, day);
+    masterData[key] = value;
+    // ถ้าหัวหน้าแก้ตัวเลขเอง สีแดงก็จะหายไปอัตโนมัติเช่นกัน
+    if (isSupervisorMode) {
+        delete masterData[key + "_PENDING"];
+        const el = document.getElementById(`summary-${staffId}-${prodId}-${day}`);
+        if (el) el.classList.remove('text-red-600', 'font-bold');
     }
+    syncData(false);
+}
 
 // ฟังก์ชันช่วยบันทึกค่าที่พิมพ์ในตารางสรุป
 function updateDataFromSummary(staffId, prodId, day, value) {
@@ -750,6 +763,9 @@ function saveDailyData() {
         }
     }
 
+    // --- เช็คว่า "วันนี้" เคยถูกกดบันทึกไปแล้วหรือยัง (แก้ปัญหาข้อ 2) ---
+    const isDayAlreadySaved = !!masterData[getShiftKey(currentDay)];
+
     // --- ส่วนของเงื่อนไขการบันทึกยอด และตรวจสอบการแก้ไขซ้ำ (ตัวแดงฝังขึ้น Cloud) ---
     STAFF_MAP.forEach(staff => {
         PRODUCT_MAP.forEach(prod => {
@@ -759,8 +775,8 @@ function saveDailyData() {
             const oldValue = masterData[key];
             const pendingKey = key + "_PENDING";
 
-            // ตรวจสอบเงื่อนไขตัวแดง: ไม่ใช่ Sup + มีค่าเดิมอยู่แล้ว + ค่าใหม่ไม่เท่ากับค่าเดิม
-            if (!isSupervisorMode && oldValue !== undefined && oldValue !== "" && oldValue != newValue && newValue !== "") {
+            // ตรวจสอบเงื่อนไขตัวแดง: ไม่ใช่ Sup + วันนี้เคยถูกบันทึกไปแล้ว + ค่าใหม่ไม่เท่ากับค่าเดิม
+            if (!isSupervisorMode && isDayAlreadySaved && oldValue != newValue && newValue !== "") {
                 const label = (prod.label || '').toUpperCase();
                 // ตรวจจับเฉพาะกลุ่มคอลัมน์ ML, MN, RCF หรือ Reconfirm ตามชื่อย่อรายการ
                 if (label.includes('ML') || label.includes('MN') || label.includes('RCF') || label.includes('RECONFIRM')) {
@@ -830,24 +846,23 @@ document.addEventListener('input', function(e) {
         let prodId = parseInt(idParts[2]);
         let newValue = e.target.value;
         let key = getKey(staffId, prodId, currentDay);
-        
-        // ตรงบรรทัดนี้ครับที่ Error (ต้องมีเครื่องหมายคำพูด " " ครอบ _PENDING)
         let pendingKey = key + "_PENDING"; 
-        
         let oldValue = masterData[key];
+        
+        const isDayAlreadySaved = !!masterData[getShiftKey(currentDay)];
+        const prod = PRODUCT_MAP.find(p => p.id === prodId);
 
-        // เงื่อนไขตัวแดง: ไม่ใช่ Sup + มีค่าเดิมในระบบ + ค่าใหม่ไม่เท่ากับค่าเดิม
-        if (!isSupervisorMode && oldValue !== undefined && oldValue !== "" && oldValue != newValue && newValue !== "") {
-            if (prodId === 1 || prodId === 2 || prodId === 3) {
-                masterData[pendingKey] = true; // บันทึกสถานะตัวแดง
+        if (prod && !isSupervisorMode && isDayAlreadySaved && oldValue != newValue && newValue !== "") {
+            const label = (prod.label || '').toUpperCase();
+            if (label.includes('ML') || label.includes('MN') || label.includes('RCF') || label.includes('RECONFIRM')) {
+                masterData[pendingKey] = true; 
             }
         } else if (isSupervisorMode) {
-            // ถ้า Sup เป็นคนแก้เอง ให้ลบสถานะตัวแดงออก
             delete masterData[pendingKey];
         }
 
         masterData[key] = newValue;
-        syncData(false); // จำค่าลงในเครื่องก่อน
+        syncData(false); 
     }
 });
 
