@@ -213,16 +213,10 @@
                         <table class="input-table w-full border-none">
                             <thead>
                                 <tr class="input-header-row1">
-                                    <th class="col-name text-xs rounded-tl-xl border-l-0 border-t-0">วันนี้</th>
-                                    <th colspan="6" id="display-date-label" class="text-sm tracking-wide border-t-0">-</th>
-                                    <th class="text-[10px] border-t-0">กะงาน</th>
-                                    <th class="cell-a w-14 rounded-tr-xl border-r-0 border-t-0" style="padding: 0;">
-                                        <div class="flex items-center justify-center gap-2">
-    					<div class="flex items-center justify-center gap-1.5 w-full">
-    <input type="text" id="daily-shift-input" class="w-10 text-center bg-transparent outline-none text-xl font-bold text-[#78350f]" placeholder="-">
-    
-    <input type="text" id="team-shift-display" class="w-14 text-center bg-orange-500 text-white rounded-lg outline-none text-base font-bold cursor-not-allowed py-0.5 shadow-sm" readonly placeholder="หยุด">
-</div>
+                                    <th class="cell-a w-14 rounded-tr-xl border-r-0 border-t-0 p-0 bg-orange-500">
+                                        <input type="text" id="daily-shift-input" 
+                                               class="w-full text-center bg-orange-500 text-white outline-none text-base font-bold py-2 rounded-tr-xl placeholder-white" 
+                                               placeholder="หยุด">
                                     </th>
                                 </tr>
                                 <tr class="input-header-row2 shadow-sm relative z-10 text-[11px]">
@@ -408,19 +402,26 @@
             });
         }
 
-       function updateLabels() {
+      function updateLabels() {
     const dateObj = new Date(currentYear, currentMonth, currentDay);
     document.getElementById('display-date-label').textContent = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
     document.getElementById('dashboard-subtitle').textContent = `ระบบบันทึกและสรุปยอดงานประจำเดือน ${thaiMonths[currentMonth]} ${currentYear}`;
     document.getElementById('summary-table-header').textContent = `ระบบบันทึกและสรุปยอดงานประจำเดือน ${thaiMonths[currentMonth]} ${currentYear}`;
     
+    // ดึงกะงานตามวันที่ระบุเลือกมาแสดงในช่องสีส้มด้านบน
     const currentShiftVal = masterData[getShiftKey(currentDay)] || '';
-    document.getElementById('daily-shift-input').value = currentShiftVal;
-    
-    // แสดงเฉพาะตัวอักษรกะงาน หรือคำว่า "หยุด" เพียงอย่างเดียวในช่องสีส้ม
-    const teamShiftEl = document.getElementById('team-shift-display');
-    if (teamShiftEl) {
-        teamShiftEl.value = (currentShiftVal === '' || currentShiftVal === 'หยุด') ? 'หยุด' : currentShiftVal;
+    const shiftInput = document.getElementById('daily-shift-input');
+    if (shiftInput) {
+        shiftInput.value = (currentShiftVal === '' || currentShiftVal === 'หยุด') ? 'หยุด' : currentShiftVal;
+        
+        // ถ้าเป็นโหมด Sup ให้เปิดให้พิมพ์แก้ได้ ถ้าโหมดปกติจะล็อกให้อ่านได้อย่างเดียว
+        if (isSupervisorMode) {
+            shiftInput.readOnly = false;
+            shiftInput.classList.remove('cursor-not-allowed');
+        } else {
+            shiftInput.readOnly = true;
+            shiftInput.classList.add('cursor-not-allowed');
+        }
     }
 }
 
@@ -699,24 +700,23 @@ function updateDataFromSummary(staffId, prodId, day, value) {
         th.className = "day-cell bg-slate-700 text-white p-1 text-center min-w-[45px]";
         
         const shift = masterData[getShiftKey(i)] || '';
-        // หากไม่มีข้อมูลกะ หรือระบุเป็นค่าว่าง/หยุด ให้แสดงคำว่า "หยุด"
         const displayShift = (shift === '' || shift === 'หยุด') ? 'หยุด' : shift;
         
-        if (isSupervisorMode) {
-            // โหมดแก้ไข: แสดงเป็นช่องให้พิมพ์แก้ไขกะงานของวันนั้นๆ ได้โดยตรง
+        if (typeof isSupervisorMode !== 'undefined' && isSupervisorMode) {
+            // โหมด Sup: เปลี่ยนเป็นกล่องอินพุตสีส้มให้หัวหน้าพิมพ์แก้ไขกะงานได้เลย
             th.innerHTML = `
                 <div class="text-xs font-bold mb-0.5">${i}</div>
                 <input type="text" 
-                       class="w-full text-center bg-orange-100 text-orange-900 font-bold text-[11px] rounded border border-orange-400 focus:outline-none p-0.5" 
+                       class="w-full text-center bg-orange-500 text-white font-bold text-[11px] rounded border-none focus:outline-none p-0.5" 
                        value="${displayShift}" 
                        placeholder="หยุด"
                        oninput="updateShiftFromSummary(${i}, this.value)">
             `;
         } else {
-            // โหมดปกติ: แสดงเฉพาะตัวอักษรกะงาน หรือคำว่า "หยุด" โดดๆ ไม่มีวงเล็บ
+            // โหมดปกติ: แสดงข้อความ A B C หรือ หยุด โดด ๆ แยกตามวันอย่างอิสระ
             th.innerHTML = `
                 <div class="text-xs font-bold">${i}</div>
-                <span class="text-[10px] text-amber-400 font-bold">${displayShift}</span>
+                <span class="text-[11px] text-amber-400 font-bold">${displayShift}</span>
             `;
         }
         row.appendChild(th);
@@ -726,23 +726,21 @@ function updateDataFromSummary(staffId, prodId, day, value) {
 // ฟังก์ชันใหม่: รองรับการแก้ไขกะงานจากตารางสรุปด้านล่างในโหมด Sup
 function updateShiftFromSummary(day, value) {
     if (!isSupervisorMode) return;
-    const cleanValue = value.trim().toUpperCase();
+    let cleanValue = value.trim().toUpperCase();
+    if (cleanValue === '') cleanValue = 'หยุด';
     
-    // บันทึกค่าลงฐานข้อมูล
+    // บันทึกกะงานลงฐานข้อมูลแยกตามวัน
     masterData[getShiftKey(day)] = cleanValue;
     
-    // ถ้าตัวที่แก้ ตรงกับวันที่กำลังเลือกดูอยู่ ให้ช่องกรอกด้านบนและช่องสีส้มเปลี่ยนตามทันที
+    // ถ้าวันทีแก้ตรงกับวันที่กำลังเลือกดูอยู่ด้านบน ให้ช่องด้านบนอัปเดตตามทันที
     if (day === currentDay) {
-        const dailyShiftInput = document.getElementById('daily-shift-input');
-        if (dailyShiftInput) dailyShiftInput.value = cleanValue;
-        
-        const teamShiftDisplay = document.getElementById('team-shift-display');
-        if (teamShiftDisplay) {
-            teamShiftDisplay.value = (cleanValue === '' || cleanValue === 'หยุด') ? 'หยุด' : cleanValue;
+        const shiftInput = document.getElementById('daily-shift-input');
+        if (shiftInput) {
+            shiftInput.value = cleanValue;
         }
     }
     
-    syncData(false); // เซฟลงระบบคลาวด์เบื้องหลัง
+    syncData(false); // ซิงค์บันทึกข้อมูลเบื้องหลัง
 }
         function renderInputTable() {
         const tbody = document.getElementById('input-tbody');
@@ -872,7 +870,11 @@ function saveDailyData() {
         });
     });
 
-    masterData[getShiftKey(currentDay)] = currentShift || 'A';
+    if (currentShift === '' || currentShift === 'หยุด' || currentShift === '-') {
+        masterData[getShiftKey(currentDay)] = 'หยุด';
+    } else {
+        masterData[getShiftKey(currentDay)] = currentShift;
+    }
     syncData(true); 
     renderSummaryTable();
     showToast("บันทึกข้อมูลเรียบร้อย", "green");
