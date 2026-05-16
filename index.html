@@ -1218,6 +1218,101 @@ function updateAllCalculatedShifts() {
         });
     }
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+    const summaryTable = document.getElementById('summary-table') || document.querySelector('table');
+    if (!summaryTable) return;
+
+    // ฟังก์ชันหลักสำหรับดึงค่าจากช่องในตารางสรุปไปหยอดลงฟอร์มรายวันด้านบน
+    function syncCellToDailyInput(targetCell) {
+        if (!targetCell) return;
+        
+        const row = targetCell.closest('tr');
+        if (!row) return;
+
+        // 1. หาเลขวันที่ของคอลัมน์นี้ (Column Index)
+        const cellIndex = Array.from(row.children).indexOf(targetCell);
+        const thRows = summaryTable.querySelectorAll('thead tr');
+        let dateRow = null;
+        
+        thRows.forEach(r => {
+            const ths = r.querySelectorAll('th');
+            if (ths.length >= 28) { dateRow = r; } // แถวหัวตารางระบุวันที่
+        });
+        if (!dateRow) return;
+
+        const targetTh = dateRow.children[cellIndex];
+        if (!targetTh) return;
+        
+        // แปลงข้อความหัวตารางคอลัมน์นั้นให้เป็นตัวเลขวันที่
+        const dayNum = parseInt(targetTh.innerText.replace(/[^0-9]/g, ''), 10);
+        if (isNaN(dayNum)) return;
+
+        // 2. ตรวจสอบวันปัจจุบันที่ถูกเลือกอยู่บนฟอร์มรายวันด้านบน
+        const daySelect = document.getElementById('current-day-select') || 
+                          document.getElementById('day-select') || 
+                          document.querySelector('select[id*="day"]');
+        
+        let activeDay = null;
+        if (daySelect) {
+            activeDay = parseInt(daySelect.value, 10);
+        } else if (typeof currentDay !== 'undefined') {
+            activeDay = currentDay;
+        }
+
+        // 🔒 ปลอดภัยสูงสุด: จะซิงค์ข้อมูลเฉพาะคอลัมน์ที่เป็นวันเดียวกับฟอร์มรายวันด้านบนที่เปิดอยู่เท่านั้น
+        if (activeDay && dayNum !== activeDay) return;
+
+        // 3. อ่านชื่อประเภทงานทางซ้ายสุดเพื่อใช้จับคู่ช่องกรอก (4 ล้อ, 6 ล้อ, มากกว่า 6 ล้อ)
+        const rowHeader = row.querySelector('td:first-child') || row.querySelector('th:first-child');
+        if (!rowHeader) return;
+        const rowLabel = rowHeader.innerText.trim();
+
+        // ดึงค่าล่าสุดที่พิมพ์แก้ไขในเซลล์ตารางสรุป
+        const newValue = targetCell.tagName === 'INPUT' ? targetCell.value : targetCell.innerText.trim();
+
+        // 4. จับคู่ ID ช่องกรอกรายวันด้านบนเพื่อเตรียมหยอดค่า
+        let dailyInput = null;
+        if (rowLabel.includes("4 ล้อ") || rowLabel.includes("C1")) {
+            dailyInput = document.getElementById('input-c1') || document.getElementById('mflow-c1') || document.querySelector('[id*="c1"]');
+        } else if (rowLabel.includes("6 ล้อ") || rowLabel.includes("C2")) {
+            dailyInput = document.getElementById('input-c2') || document.getElementById('mflow-c2') || document.querySelector('[id*="c2"]');
+        } else if (rowLabel.includes("มากกว่า 6") || rowLabel.includes("C3")) {
+            dailyInput = document.getElementById('input-c3') || document.getElementById('mflow-c3') || document.querySelector('[id*="c3"]');
+        }
+
+        // 5. ทำการหยอดค่ากลับเข้าฟอร์มรายวัน และ Trigger Event เพื่อกระตุ้นลอจิกเดิมของระบบ
+        if (dailyInput) {
+            dailyInput.value = newValue;
+            dailyInput.dispatchEvent(new Event('input', { bubbles: true }));
+            dailyInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    }
+
+    // ✨ เปลี่ยนมาใช้ 'focusout' (เมื่อพิมพ์เสร็จแล้วกดคลิกย้ายไปช่องอื่น)
+    // ช่วยให้พิมพ์เลขอัพเดทได้อย่างอิสระ ไม่เกิดการแย่งรีเรนเดอร์ตารางกลางคันจนดีดกลับ
+    summaryTable.addEventListener('focusout', (e) => {
+        const target = e.target;
+        if (target.tagName === 'INPUT' || target.hasAttribute('contenteditable') || target.closest('td')) {
+            const cell = target.tagName === 'TD' ? target : target.closest('td');
+            syncCellToDailyInput(cell);
+        }
+    });
+
+    // 🎯 ดักจับเพิ่มเติมที่ปุ่ม "บันทึก" เพื่อทำการซิงค์ค่ารอบสุดท้ายเข้าสู่ฟอร์มรายวันก่อนที่ระบบเดิมจะกดเซฟจริง
+    const allButtons = document.querySelectorAll('button');
+    allButtons.forEach(btn => {
+        if (btn.innerText.includes('บันทึก') || btn.id?.toLowerCase().includes('save')) {
+            // ใช้ mousedown เพื่อให้ทำงานก่อน click event ดั้งเดิมของระบบ
+            btn.addEventListener('mousedown', () => {
+                const cells = summaryTable.querySelectorAll('td');
+                cells.forEach(cell => {
+                    syncCellToDailyInput(cell);
+                });
+            });
+        }
+    });
+});
     </script>
 </body>
 </html>
