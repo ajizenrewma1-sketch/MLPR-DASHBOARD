@@ -155,6 +155,7 @@
             min-width: 50px !important; 
             padding: 0 !important; 
         }
+	.col-audit { color: #57534e; }
     </style>
 </head>
 <body class="p-3 lg:p-8 min-h-screen">
@@ -214,7 +215,7 @@
                     <thead>
                         <tr class="input-header-row1">
                             <th class="col-name text-xs rounded-tl-xl border-l-0 border-t-0">วันนี้</th>
-                            <th colspan="6" id="display-date-label" class="text-sm tracking-wide border-t-0">-</th>
+                            <th colspan="7" id="display-date-label" class="text-sm tracking-wide border-t-0">-</th>
                             <th class="text-[10px] border-t-0">กะงาน</th>
                             <th class="cell-a w-14 rounded-tr-xl border-r-0 border-t-0 p-0 bg-orange-500">
     <input type="text" id="daily-shift-input" 
@@ -227,10 +228,11 @@
                             <th class="col-ml">ML</th>
                             <th class="col-mn">MN</th>
                             <th class="col-rcf">RCF</th>
-                            <th class="col-txn">TXN</th>
-                            <th class="col-inq">สอบ</th>
-                            <th class="col-log">LOG</th>
-                            <th class="col-conv">ขบวน</th>
+                            <th class="col-txn">LOG</th>
+                            <th class="col-inq">TXN Manual</th>
+                            <th class="col-log">CCTV (Audit)</th>
+                            <th class="col-conv">Temp สอบถาม</th>
+			    <th class="col-conv">รถขบวนเสด็จ</th>
                             <th class="col-qc border-r-0">QC</th>
                         </tr>
                     </thead>
@@ -354,11 +356,12 @@
 
         const PRODUCT_MAP = [
             { id: 0, label: "MLPR", short: "ML", class: "col-ml" },
-            { id: 1, label: "MNPR", short: "MN", class: "col-mn" },
+    	    { id: 1, label: "MNPR", short: "MN", class: "col-mn" },
             { id: 2, label: "Reconfirm", short: "RCF", class: "col-rcf" },
-            { id: 3, label: "TXN Manual", short: "TXN", class: "col-txn" },
-            { id: 4, label: "Temp สอบถาม", short: "สอบถาม", class: "col-inq" },
             { id: 5, label: "LOG", short: "LOG", class: "col-log" },
+            { id: 3, label: "TXN Manual", short: "TXN", class: "col-txn" },
+            { id: 8, label: "CCTV (Audit)", short: "CCTV", class: "col-audit" },
+            { id: 4, label: "Temp สอบถาม", short: "สอบถาม", class: "col-inq" },
             { id: 6, label: "รถขบวนเสด็จ", short: "ขบวน", class: "col-conv" },
             { id: 7, label: "QC", short: "QC Temp", class: "col-qc" }
         ];
